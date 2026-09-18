@@ -44,6 +44,38 @@ description: Transform a user-supplied photo by keeping the photograph completel
 4. **反差幽默**：画面平凡琐碎，宣言宏大庄重。猫端坐沙发 → "I AM IN CHARGE HERE"。
 5. **关系宣言**：与画面另一主体的关系。两人背影 → "I AM STILL HERE WITH YOU"。
 
+### 五种句式抽屉
+
+官方原片出现过五种语法模式（完整清单见 [docs/caption-patterns.md](docs/caption-patterns.md)）。先判断画面量级与错位方向，再从对应抽屉造句：
+
+| 抽屉 | 句式 | 官方示例 | 适用 |
+| :--- | :--- | :--- | :--- |
+| 冠名式 | I AM THE + 名词短语 | THE NIGHT · THE BEAUTY OF LIFE | 氛围图、群像、有明确气质的街拍（主力句式） |
+| 传奇式 | I AM + 专有名词 | MARCO POLO · BUFFALO BILL | 旅行、探险、夸张姿势 |
+| 身份式 | I AM + A/AN + 名词 | A WHITE SHARK · A HOPELESS ROMANTIC | 动物、特写、情绪场景 |
+| 状态式 | I AM + 状态词/短语 | HOME · NOTHING · WHATEVER IT TAKES | 极简构图、大留白 |
+| 归属式 | I AM PART OF … | PART OF THE WORLD | 群像、系列合集 |
+
+按照片类型选抽屉的优先级：
+
+| 照片类型 | 优先抽屉 | 词库示例 |
+| :--- | :--- | :--- |
+| 街拍/人物剪影 | 冠名式、状态式 | THE MORNING RUSH · NOT IN A HURRY · EVERYONE'S EXTRA |
+| 建筑/空间 | 冠名式 | THE CITY'S PAUSE · STILL UNDER CONSTRUCTION |
+| 动物/宠物 | 身份式、传奇式 | THE LANDLORD · A LEGEND · BOSS AROUND HERE |
+| 静物/食物 | 身份式反差 | THE MAIN COURSE · WORTH THE WAIT · NOT FOR SHARING |
+| 风光/天空 | 冠名式、状态式 | THE BIG PICTURE · BRIEFLY MAGNIFICENT · ON FIRE |
+
+**副词是幽默的开关**：ALMOST / NOT / STILL / BRIEFLY 这类词制造「差一点」与「偏不」，优先考虑。
+
+### 三道检验
+
+句子定稿前必须通过，不过就重写：
+
+1. **画外测试**：句子的信息量至少一半在画面之外——看到图猜不到的才算数。
+2. **唯一性测试**：把句子盖到另一张照片上若仍然成立，即不合格。"I AM BRIEFLY MAGNIFICENT" 换到火山之外就塌，合格；"I AM YOUR NINE TO FIVE" 换到任何写字楼图都成立，偏弱。
+3. **错位测试**：宣言的量级要与画面错开至少一档（画面小宣言大，或画面大宣言小）。同量级直接毙（画面美 → "I AM BEAUTIFUL" ✗）。
+
 ### 硬性规则
 
 - 格式：以 "I AM" 开头，全大写英文，含 "I AM" 共 **2–6 个单词**，无标点、无句号、无感叹号。
@@ -99,6 +131,7 @@ AI 生成模式（需要文字融进画面光影时才用）：读取 `reference
 - 照片方向是否与原片观看方向一致（竖进竖出、横进横出）？
 - 照片是否原样保留（无调色、无裁切、无 AI 痕迹）？
 - 文案是否第一人称、2–6 词、全大写、无标点？
+- 文案是否通过三道检验（画外、唯一性、错位）？
 - 文案是否基于画面事实、且指向画面之外的故事（而不是复述画面）？
 - 双块结构、尼康黄 `#FFE000`、黑 "I AM"、白字黄框是否精确？两块是否无缝相接、顶底对齐？
 - 整条宽度是否 ≤86% 画面宽、单行不换行、拼写逐字正确？
