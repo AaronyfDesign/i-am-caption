@@ -202,6 +202,21 @@ img.complete?layout():img.addEventListener('load',layout);
 """
 
 
+def save_capped(img, out, max_mb=2.0, start_quality=90, min_quality=55):
+    """Save JPEG, lowering quality (then gently downscaling) until <= max_mb."""
+    cap = max_mb * 1024 * 1024
+    q = start_quality
+    while True:
+        img.save(out, quality=q, optimize=True)
+        if os.path.getsize(out) <= cap or q <= min_quality:
+            break
+        q -= 5
+    while os.path.getsize(out) > cap:
+        w, h = img.size
+        img = img.resize((int(w * 0.85), int(h * 0.85)), Image.LANCZOS)
+        img.save(out, quality=start_quality, optimize=True)
+
+
 def load_font(candidates, size):
     for path, index in candidates:
         if not os.path.exists(path):
@@ -267,7 +282,7 @@ def geometry(W, H, statement, left_text, scale=1.0, max_width_frac=0.86, zh=Fals
 
 def render(src, statement, out, pos="center", y_frac=None, scale=1.0,
            backing=None, zh=False, left_text=None, max_width_frac=0.86, opacity=1.0,
-           fill=None):
+           fill=None, max_mb=2.0):
     left_text = left_text or ("我是" if zh else "I AM")
     statement = statement.upper() if not zh else statement
 
@@ -321,7 +336,7 @@ def render(src, statement, out, pos="center", y_frac=None, scale=1.0,
         d.text((rx0 + pad_x - rb[0], rty), statement, font=g["font_right"], fill=white)
 
     result = Image.alpha_composite(img, overlay).convert("RGB")
-    result.save(out, quality=94)
+    save_capped(result, out, max_mb)
     print(f"saved: {out}  {W}x{H}  band_h={band_h:.0f}px  total_w={g['total']:.0f}px"
           f" ({g['total'] / W:.0%} of W)")
     return {"W": W, "H": H, "y_frac": y_frac, "scale": scale, "statement": statement,
@@ -368,13 +383,15 @@ def main():
                          "short statements grow, long ones shrink")
     ap.add_argument("--backing", nargs="?", const=0.18, type=float, default=None, metavar="A",
                     help="dark backing inside the outline block, opacity 0-1 (default 0.18 with flag)")
+    ap.add_argument("--max-mb", type=float, default=2.0,
+                    help="max output file size in MB (quality-then-size compression)")
     ap.add_argument("--zh", action="store_true", help="Chinese mode")
     ap.add_argument("--opacity", type=float, default=1.0)
     a = ap.parse_args()
     if not os.path.exists(a.src):
         sys.exit(f"source not found: {a.src}")
     info = render(a.src, a.text, a.out, a.pos, a.y, a.scale, a.backing, a.zh,
-                  a.left, opacity=a.opacity, fill=a.fill)
+                  a.left, opacity=a.opacity, fill=a.fill, max_mb=a.max_mb)
     if a.html_out:
         write_html(a.html_out, a.src, info)
 
