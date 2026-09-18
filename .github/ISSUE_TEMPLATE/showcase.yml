@@ -1,0 +1,41 @@
+name: Showcase · 作品展示
+description: 晒出你的 I AM Caption 作品 —— original photo, statement, and the story beyond the frame.
+title: "[Showcase] "
+labels: ["showcase"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢使用 I AM Caption！欢迎在这里分享你的作品：原照、宣言、以及那句宣言指向的画外故事。
+        Thanks for using I AM Caption! Share your work: the original photo, the statement, and the story beyond the frame.
+        > 请只上传你有权分享的照片；人物肖像请征得当事人同意。Only upload photos you have the right to share; get consent for recognizable people.
+  - type: input
+    id: statement
+    attributes:
+      label: Statement · 宣言
+      description: 例如 I AM STILL BLOOMING
+      placeholder: I AM ...
+    validations:
+      required: true
+  - type: textarea
+    id: story
+    attributes:
+      label: The story beyond the frame · 画外的故事
+      description: 代入的视角 + 画面事实 + 这句话说的画外故事。The viewpoint, the visible facts, and what the line says beyond the frame.
+    validations:
+      required: true
+  - type: textarea
+    id: images
+    attributes:
+      label: Photos · 照片
+      description: 拖入原图和成品（可多个）。Drag in the source photo and the result (multiple allowed).
+    validations:
+      required: true
+  - type: input
+    id: credit
+    attributes:
+      label: Credit · 署名
+      description: 想被如何署名？How should you be credited?
+      placeholder: "@your-handle"
+    validations:
+      required: false
