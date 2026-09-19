@@ -18,7 +18,7 @@ Copy the skill into your agent's skills directory:
 
 ```bash
 git clone https://github.com/AaronyfDesign/i-am-caption.git
-cp -R i-am-caption ~/.catpaw/skills/   # or ~/.codex/skills
+cp -R i-am-caption ~/.codex/skills/
 ```
 
 Then upload a photo and say:

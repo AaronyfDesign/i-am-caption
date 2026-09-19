@@ -18,7 +18,7 @@
 
 ```bash
 git clone https://github.com/AaronyfDesign/i-am-caption.git
-cp -R i-am-caption ~/.catpaw/skills/   # 或 ~/.codex/skills
+cp -R i-am-caption ~/.codex/skills/
 ```
 
 然后上传一张照片，说一句：
