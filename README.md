@@ -14,7 +14,7 @@
 
 ## Web 版（免安装）
 
-不用装 Skill 也能用：打开 [Web 版](https://aaronyfdesign.github.io/i-am-caption/)，点「用 OpenRouter 登录」，上传照片即可。
+不用装 Skill 也能用：打开 [Web 版](https://aaronyfdesign.github.io/i-am-caption/web/)，点「用 OpenRouter 登录」，上传照片即可。
 
 - **零 API Key**：登录走 OpenRouter OAuth 授权，返回一个仅存于你浏览器本地的临时密钥，不创建、不粘贴、不上传任何 Key；
 - **AI 配文**：免费视觉模型看图定排版，DeepSeek 提炼宣言（可选，需少量 OpenRouter 余额）；

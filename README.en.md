@@ -14,7 +14,7 @@ Turn a photograph into a first-person statement. Inspired by the classic Nikon "
 
 ## Web App (no install)
 
-Use it without installing the skill: open the [web app](https://aaronyfdesign.github.io/i-am-caption/), sign in with OpenRouter, and drop a photo.
+Use it without installing the skill: open the [web app](https://aaronyfdesign.github.io/i-am-caption/web/), sign in with OpenRouter, and drop a photo.
 
 - **Zero API keys**: sign-in is an OpenRouter OAuth handshake that leaves a temporary, browser-local key — nothing to create, paste or upload;
 - **AI captions**: a free vision model reads the photo and picks placement, DeepSeek distills the statement (optional, needs a small OpenRouter balance);
