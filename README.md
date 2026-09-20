@@ -12,6 +12,15 @@
 
 ---
 
+## Web 版（免安装）
+
+不用装 Skill 也能用：打开 [Web 版](https://aaronyfdesign.github.io/i-am-caption/)，点「用 OpenRouter 登录」，上传照片即可。
+
+- **零 API Key**：登录走 OpenRouter OAuth 授权，返回一个仅存于你浏览器本地的临时密钥，不创建、不粘贴、不上传任何 Key；
+- **AI 配文**：免费视觉模型看图定排版，DeepSeek 提炼宣言（可选，需少量 OpenRouter 余额）；
+- **手动模式**：跳过登录也能用，上传后自己写字、拖滑杆排版；
+- 纯前端单页，无服务器、无账号，照片仅在浏览器里处理。
+
 ## How to Use
 
 把 Skill 目录复制到你的 Agent Skills 目录：
