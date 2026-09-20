@@ -15,7 +15,6 @@
 
   /* ---------- hero ---------- */
   .hero { text-align:center; padding:56px 12px 28px; }
-  .hero .mark { display:inline-block; margin-bottom:18px; }
   .hero h1 { font-size:44px; letter-spacing:.06em; margin:0 0 10px; font-weight:800; }
   .hero h1 .y { color:var(--yellow); }
   .hero p.sub { color:var(--dim); max-width:560px; margin:0 auto 30px; }
@@ -30,10 +29,10 @@
   .btn:hover { filter:brightness(1.06); }
   .btn.ghost { background:transparent; color:var(--dim); border:1px solid var(--line);
                font-weight:400; padding:11px 20px; margin-left:12px; }
-  .note { color:var(--dim); font-size:13px; margin-top:14px; max-width:520px; margin-left:auto; margin-right:auto; }
-  details.adv { margin-top:26px; color:var(--dim); font-size:13px; }
-  details.adv input { background:#0c0c0c; color:var(--txt); border:1px solid var(--line);
-                      padding:7px 10px; width:320px; max-width:100%; border-radius:3px; }
+  .note { color:var(--dim); font-size:13px; margin-top:14px; max-width:560px; margin-left:auto; margin-right:auto; }
+  .keyrow { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:6px; }
+  .keyrow input { background:#0c0c0c; color:var(--txt); border:1px solid var(--line);
+                  padding:11px 14px; width:380px; max-width:100%; border-radius:3px; font-size:14px; }
 
   /* ---------- workspace ---------- */
   header.bar { display:flex; align-items:center; gap:14px; flex-wrap:wrap;
@@ -78,25 +77,25 @@
 
   <!-- ================= HERO / CONNECT ================= -->
   <section id="hero" class="hero">
-    <div class="mark">
-      <div class="band-demo">
-        <div class="l">I AM</div>
-        <div class="r">THE STORY BEYOND THE FRAME</div>
-      </div>
+    <div class="band-demo">
+      <div class="l">I AM</div>
+      <div class="r">THE STORY BEYOND THE FRAME</div>
     </div>
     <h1>I AM <span class="y">CAPTION</span></h1>
     <p class="sub">上传一张照片，AI 替画面里的人（或物）写一句第一人称宣言——说的不是照片里看得见的，而是照片之外的故事。尼康黄字字幕压在原片上，照片像素一概不动。</p>
 
-    <button class="btn" id="loginBtn">用 OpenRouter 登录（免费）</button>
-    <button class="btn ghost" id="manualBtn">跳过登录，手动写字</button>
-    <p class="note">点击后跳转 OpenRouter 官网完成登录授权，返回本页即可。<b>全程不创建、不粘贴、不上传任何 API Key</b>——授权产生的是仅存于你浏览器本地的临时密钥，随时可在 OpenRouter 后台吊销。</p>
+    <button class="btn" id="relayBtn">用 DeepSeek 网页版生成（免费 · 免 Key）</button>
+    <button class="btn ghost" id="manualBtn">跳过，手动写字</button>
+    <p class="note">流程：上传照片后点生成 → 提示词已自动复制，并为你打开 <a href="https://chat.deepseek.com/" target="_blank" rel="noopener">chat.deepseek.com</a> → 把照片拖进对话框、粘贴提示词发送 → 复制 DeepSeek 的回复贴回本页，排版与导出自动完成。
+    免费、不需要任何 API Key，用的就是 DeepSeek 本尊。</p>
 
     <details class="adv">
-      <summary>高级：手动粘贴 OpenRouter Key（不推荐，OAuth 更省事）</summary>
-      <div class="row" style="justify-content:center; margin-top:10px;">
-        <input type="text" id="manualKey" placeholder="sk-or-v1-…" autocomplete="off">
-        <button class="btn" style="padding:8px 16px; font-size:14px;" id="manualKeyBtn">使用</button>
+      <summary>高级：粘贴 DeepSeek API Key 全自动调用（下下策）</summary>
+      <div class="keyrow" style="margin-top:10px;">
+        <input type="password" id="dsKey" placeholder="粘贴 DeepSeek API Key（sk-…）" autocomplete="off">
+        <button class="btn" id="dsKeyBtn">开始使用</button>
       </div>
+      <p class="note">Key 只存你的浏览器本地，请求由浏览器直连 DeepSeek 官方 API（已实测支持跨域），不经过任何服务器；每张照片成本不到 0.1 分钱。</p>
     </details>
   </section>
 
@@ -109,26 +108,32 @@
 
     <div id="drop">
       <b>点击选择照片</b>，或把照片拖到这里<br>
-      <span style="font-size:12px;">照片只在你的浏览器里处理，原图不上传服务器（AI 分析时仅发送一份压缩副本）</span>
+      <span style="font-size:12px;">照片只在你的浏览器里处理，AI 分析时仅发送一份压缩副本</span>
       <input type="file" id="file" accept="image/*" class="hidden">
     </div>
 
     <div id="workspace" class="hidden">
 
       <div class="panel">
-        <h3>AI 配文</h3>
+        <h3>AI 配文 · DeepSeek 网页版中继（免费 · 免 Key）</h3>
         <div class="row">
-          <label class="f">视觉模型（看图 · 免费档）
-            <select id="visionModel"></select>
-          </label>
-          <label class="f">文案模型（可选 · DeepSeek 打磨，需少量余额）
-            <select id="writerModel"></select>
-          </label>
-          <span class="check"><input type="checkbox" id="useWriter" checked>
-            <label for="useWriter">用 DeepSeek 写宣言</label></span>
-          <button class="btn" id="genBtn">✦ 生成宣言</button>
-          <span class="check" style="margin-left:auto;"><input type="checkbox" id="zhMode">
+          <button class="btn" id="relayBtn2">① 复制提示词，打开 DeepSeek</button>
+          <span class="check"><input type="checkbox" id="zhMode">
             <label for="zhMode">中文模式（我是 …）</label></span>
+        </div>
+        <div class="row">
+          <label class="f" style="flex:1; min-width:280px;">③ 把 DeepSeek 的回复粘贴到这里
+            <textarea id="relayPaste" rows="5" style="width:100%; background:#0c0c0c; color:var(--txt);
+              border:1px solid var(--line); border-radius:3px; padding:8px 10px; font-size:13px;"
+              placeholder="粘贴 DeepSeek 回复的 JSON…"></textarea>
+          </label>
+          <button class="btn" id="relayApply" style="align-self:flex-end;">解析并应用</button>
+        </div>
+        <div class="row" id="autoRow" style="display:none; gap:8px;">
+          <button class="btn" id="autoBtn" style="background:#9fe6a0;">⚡ 全自动：已检测到本地中继脚本，一键生成</button>
+        </div>
+        <div class="row" id="keyRow" style="display:none; gap:8px;">
+          <button class="btn" id="genBtn" style="padding:8px 16px; font-size:14px;">⚡ 已检测到 Key：全自动调用</button>
         </div>
         <div id="status"></div>
       </div>
@@ -171,108 +176,30 @@
 <script>
 'use strict';
 /* ================================================================
-   I AM Caption — single-file web app.
-   No backend. Two AI steps through OpenRouter with a user-controlled
-   key obtained via OAuth PKCE (the user never handles a key):
-     1) a free vision model looks at the photo -> scene + placement
-     2) (optional) DeepSeek distills the "I AM …" statement
+   I AM Caption — single-file web app, DeepSeek-only.
+   No backend. One vision call to deepseek-flash (official API,
+   browser-direct via CORS) does everything: it looks at the photo,
+   distills the "I AM …" statement and picks caption placement.
+   The API key lives only in the visitor's localStorage.
    Canvas typesetting replicates scripts/render_i_am_caption.py
    geometry so web output matches the offline renderer.
 ================================================================ */
 
 const $ = id => document.getElementById(id);
-const LS_KEY = 'iam_or_key';
+const LS_KEY = 'iam_ds_key';
+const DS_URL = 'https://api.deepseek.com/chat/completions';
+const DS_MODEL = 'deepseek-flash';
 let apiKey = localStorage.getItem(LS_KEY) || '';
 let baseCanvas = null;   // full-resolution photo, band drawn on top each render
 let imgEl = null;        // the decoded <img> for the current photo
-let sceneInfo = null;    // last AI scene JSON, reused by the writer step
 let dragging = false;    // drag caption directly on canvas
 
-/* ---------------- OpenRouter OAuth (PKCE) ---------------- */
-function b64url(bytes){
-  let s = btoa(String.fromCharCode(...bytes));
-  return s.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-}
-async function sha256B64url(str){
-  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return b64url(new Uint8Array(d));
-}
-async function startLogin(){
-  const verifier = b64url(crypto.getRandomValues(new Uint8Array(32)));
-  sessionStorage.setItem('iam_pkce', verifier);
-  const challenge = await sha256B64url(verifier);
-  const cb = location.origin + location.pathname;
-  location.href = 'https://openrouter.ai/auth?callback_url=' + encodeURIComponent(cb)
-    + '&code_challenge=' + challenge + '&code_challenge_method=S256&key_label=i-am-caption';
-}
-async function handleCallback(){
-  const code = new URLSearchParams(location.search).get('code');
-  if (!code) return false;
-  const verifier = sessionStorage.getItem('iam_pkce') || '';
-  history.replaceState(null, '', location.pathname);
-  setStatus('正在换取授权…');
-  try {
-    const r = await fetch('https://openrouter.ai/api/v1/auth/keys', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ code, code_verifier: verifier, code_challenge_method:'S256' })
-    });
-    const j = await r.json();
-    if (!j.key) throw new Error(j.error || j.message || '授权失败');
-    apiKey = j.key;
-    localStorage.setItem(LS_KEY, apiKey);
-    sessionStorage.removeItem('iam_pkce');
-  } catch (e) {
-    setStatus('授权失败：' + e.message + '，请重试登录或使用手动模式。', true);
-    return false;
-  }
-  return true;
-}
-
-/* ---------------- model lists ---------------- */
-const FALLBACK_VISION = [
-  'qwen/qwen2.5-vl-72b-instruct:free',
-  'google/gemma-3-27b-it:free',
-  'meta-llama/llama-4-maverick:free',
-];
-async function loadModels(){
-  const vs = $('visionModel'), ws = $('writerModel');
-  for (const id of FALLBACK_VISION) vs.add(new Option(id, id));
-  ws.add(new Option('deepseek/deepseek-chat-v3.1', 'deepseek/deepseek-chat-v3.1'));
-  try {
-    const r = await fetch('https://openrouter.ai/api/v1/models');
-    const list = (await r.json()).data || [];
-    const vision = list.filter(m =>
-      (m.architecture?.input_modalities || []).includes('image'));
-    const freeVision = vision.filter(m => Number(m.pricing?.prompt) === 0);
-    const deepseek = list.filter(m =>
-      m.id.includes('deepseek') && (m.architecture?.output_modalities || []).includes('text') &&
-      !m.id.includes('vl') && !m.id.includes('vlm'));
-    if (freeVision.length) {
-      vs.innerHTML = '';
-      freeVision.forEach(m => vs.add(new Option(m.id + '（免费）', m.id)));
-      const pref = FALLBACK_VISION.find(f => [...vs.options].some(o => o.value === f));
-      if (pref) vs.value = pref;
-    }
-    if (deepseek.length) {
-      const chat = deepseek.filter(m => /deepseek-chat|deepseek-v3/.test(m.id));
-      const pick = (chat.length ? chat : deepseek).sort((a,b) => a.id.length - b.id.length);
-      ws.innerHTML = '';
-      pick.slice(0, 8).forEach(m => ws.add(new Option(m.id, m.id)));
-    }
-  } catch (e) { /* static fallback lists stay */ }
-}
-
-/* ---------------- OpenRouter chat ---------------- */
-async function chat(model, messages, maxTokens){
-  const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+/* ---------------- DeepSeek chat ---------------- */
+async function chat(messages, maxTokens){
+  const r = await fetch(DS_URL, {
     method:'POST',
-    headers:{
-      'Authorization':'Bearer ' + apiKey,
-      'Content-Type':'application/json',
-      'HTTP-Referer': location.origin,
-      'X-Title':'I AM Caption'
-    },
-    body: JSON.stringify({ model, messages, max_tokens: maxTokens })
+    headers:{ 'Authorization':'Bearer ' + apiKey, 'Content-Type':'application/json' },
+    body: JSON.stringify({ model: DS_MODEL, messages, max_tokens: maxTokens })
   });
   if (!r.ok) {
     let detail = '';
@@ -291,50 +218,36 @@ function parseJSON(text){
   return JSON.parse(t);
 }
 
-/* ---------------- prompts (distilled from SKILL.md) ---------------- */
-const VISION_PROMPT = `你是「I AM Caption」尼康黄字宣言引擎的视觉分析器。看这张照片，完成两件事：
+/* ---------------- prompt (distilled from SKILL.md) ---------------- */
+function systemPrompt(zh){
+  return `你是「I AM Caption」尼康黄字宣言引擎。看这张照片，完成三件事：
 
-一、画面分析（给文案模型用）：主体是谁/什么、正在发生什么、光线与时间、情绪张力、画面之外可能正在发生的事（定格前一秒/后一秒）。
+一、画面分析：主体是谁/什么、正在发生什么、光线与时间、情绪张力、画面之外正在发生的事（定格前一秒/后一秒）。
 
-二、排版决策（给字幕条放置用）：
-- y_frac：字幕条中心线的垂直位置（0.0 顶部 – 1.0 底部）。规则：先试几何中心 0.5；若字幕条会遮挡主体（面部、关键部位），优先向下找干净区；下方没有干净区再向上；大面积纯色（纯白/纯黑/蓝天/绿地/虚化区）与画面暗部是优选位置；前景的杆、线、栏杆属于背景，可以压；暗部上白字天然高对比。幅度尽量小、永不贴边。
-- backing：背景为浅色（白墙、亮天空、雪地、白桌面）时为 true，其余 false。
-
-只输出 JSON，不要多余文字：
-{"subject":"…","action":"…","light":"…","mood":"…","off_frame":"画面之外正在发生什么（一句）",
- "y_frac":0.5,"backing":false}`;
-
-const VISION_PROMPT_ZH = VISION_PROMPT + '\n注意：用户选择了中文模式，最终宣言将是「我是 …」格式，但本 JSON 全部用中文填写。';
-
-function writerPrompt(scene, zh){
-  return `你是「I AM Caption」的文案引擎。你的唯一任务：基于画面分析，写一句压在照片上的第一人称宣言，说出画面之外的故事。
-
-${zh ? '格式：「我是 …」中文，2–10 个字，无标点。' : '格式：以 "I AM" 开头（这四个字母已在左块），宣言正文 2–6 个单词，全大写英文，无标点。'}
-
+二、写一句压在照片上的第一人称宣言，说出画面之外的故事：
+${zh ? '- 格式：「我是 …」中文，2–10 个字，无标点。' : '- 格式：宣言正文 2–6 个单词，全大写英文，无标点（"I AM" 四个字母在字幕左块，不算在内）。'}
 铁律：
 - 信：必须对应画面中真实存在的事实（主体、动作、光线、空间、时间）。
 - 达：口语、直白、一眼读懂，不用生僻词、不堆修辞。
 - 雅：留画外余韵——读者要能脑补出照片没拍到的那部分。
 - 禁止：复述画面（如 I AM A BOY ON A BIKE）；品牌广告腔（I AM NIKON）；空泛大词单独成句（MOMENT/DREAM/LIFE）；与画面无关的抒情。
-
 五个内容方向（选张力最大的一个）：
 1. 身份宣言：画面所见与真实身份的反差（孩子骑车 → THE FUN CAVALRY）。
 2. 瞬间放大：把定格的一瞬说成存在状态（宇航员漂向飞船 → HOME）。
 3. 画外故事：照片前后一秒没被拍到的事（凌空跳跃 → ALMOST FLYING）。
 4. 反差幽默：画面平凡，宣言宏大（猫端坐沙发 → IN CHARGE HERE）。
 5. 关系宣言：与画面另一主体的关系（两人背影 → STILL HERE WITH YOU）。
-
 幽默开关（可选修饰，别滥用）：ALMOST / NOT / STILL / BRIEFLY。
+三道检验（自检后输出）：画外测试（至少一半信息在画面外）；唯一性测试（放到另一张照片上就不成立）；错位测试（画面与宣言量级差至少一档）。
 
-三道检验（自检后输出）：
-- 画外测试：宣言至少一半的信息在画面之外。
-- 唯一性测试：这句话放到另一张照片上就不成立。
-- 错位测试：画面平凡与宣言量级差至少一档（或反之），错位产生张力。
+三、排版决策（字幕条是横贯画面的一条，中心线在 y_frac）：
+- y_frac：字幕条中心的垂直位置（0.0 顶部 – 1.0 底部）。先试几何中心 0.5；若会遮挡主体（面部、关键部位），优先向下找干净区；下方没有再向上；大面积纯色（纯白/纯黑/蓝天/绿地/虚化区）与画面暗部是优选位置；前景的杆、线属于背景，可以压；暗部上白字天然高对比。幅度尽量小、永不贴边。
+- backing：背景为浅色（白墙、亮天空、雪地、白桌面）时为 true，其余 false。
 
-只输出 JSON：{"statement":"${zh ? '宣言正文（不含我是）' : '不含 I AM 的宣言正文'}","reason_zh":"一句话：视角+画面事实+画外故事"}
-
-画面分析：
-${JSON.stringify(scene, null, 2)}`;
+只输出 JSON，不要多余文字：
+{"subject":"…","action":"…","light":"…","mood":"…","off_frame":"画面之外正在发生什么（一句）",
+ "statement":"${zh ? '宣言正文（不含我是）' : '不含 I AM 的宣言正文'}","reason_zh":"一句话：视角+画面事实+画外故事",
+ "y_frac":0.5,"backing":false}`;
 }
 
 function sanitizeStatement(s, zh){
@@ -375,7 +288,7 @@ function loadPhoto(file){
   img.src = url;
 }
 
-/* compressed copy sent to the vision model */
+/* compressed copy sent to the model (well under the 32 MiB image limit) */
 function visionDataURL(){
   const max = 1280;
   const W = imgEl.naturalWidth, H = imgEl.naturalHeight;
@@ -386,64 +299,101 @@ function visionDataURL(){
   return c.toDataURL('image/jpeg', 0.9);
 }
 
-/* ---------------- generate pipeline ---------------- */
+/* ---------------- AI copywriting: relay (no key) + direct (key) ------------ */
+
+/* prompt for the chat.deepseek.com relay: one self-contained user message */
+function relayPrompt(){
+  return systemPrompt($('zhMode').checked)
+    + '\n\n请只回复上面的 JSON，不要任何多余文字或代码块标记。照片我已随本消息一并发给你。';
+}
+
+/* copy prompt to clipboard and open chat.deepseek.com */
+async function relayOpen(){
+  if (!imgEl) { setStatus('请先上传照片，再开始 AI 配文', true); return; }
+  const text = relayPrompt();
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (e) {
+    // clipboard permission denied: fall back to a visible prompt box
+    window.prompt('浏览器拒绝了自动复制，请手动全选复制：', text);
+  }
+  window.open('https://chat.deepseek.com/', '_blank', 'noopener');
+  setStatus('① 提示词已复制到剪贴板，DeepSeek 已在新标签打开。'
+    + '② 把这张照片拖进对话框，粘贴提示词并发送。'
+    + '③ 复制 DeepSeek 的回复，贴到下面的输入框点「解析并应用」。');
+}
+
+/* parse the pasted relay reply and fill the editor */
+function applyResult(j){
+  const zh = $('zhMode').checked;
+  const statement = sanitizeStatement(j.statement, zh);
+  if (!statement) throw new Error('宣言为空');
+  setStatement(statement);
+  const y = Math.max(0.08, Math.min(0.92, Number(j.y_frac) || 0.5));
+  $('yPos').value = Math.round(y * 100);
+  $('backing').checked = !!j.backing;
+  $('why').textContent = j.reason_zh ? '为什么是这句：' + j.reason_zh : '';
+  setStatus('<span class="ok">完成。</span>可拖动滑杆微调位置和大小，字幕也可直接点图上修改。');
+  renderBand();
+}
+function relayApply(){
+  const raw = $('relayPaste').value;
+  if (!raw.trim()) { setStatus('还没有粘贴 DeepSeek 的回复', true); return; }
+  try {
+    applyResult(parseJSON(raw));
+  } catch (e) {
+    setStatus('解析失败：' + e.message + ' —— 确认粘贴的是包含 statement / y_frac / backing 的 JSON', true);
+  }
+}
+$('relayBtn').addEventListener('click', () => enterApp(false));
+$('relayBtn2').addEventListener('click', relayOpen);
+$('relayApply').addEventListener('click', relayApply);
+
+/* ---- 全自动通道：本机装有中继油猴脚本时可用（可选） ---- */
+function showAutoRow(){ $('autoRow').style.display = 'flex'; }
+window.addEventListener('iam-relay-ready', showAutoRow);
+setInterval(() => { if (window.__IAM_RELAY__) showAutoRow(); }, 1000);
+$('autoBtn').addEventListener('click', () => {
+  if (!imgEl) { setStatus('请先上传照片', true); return; }
+  window.dispatchEvent(new CustomEvent('iam-relay-task', {
+    detail: { id: 't' + Date.now(), prompt: relayPrompt(), imageDataUrl: visionDataURL() }
+  }));
+  window.open('https://chat.deepseek.com/', '_blank', 'noopener');
+  setStatus('任务已派发：DeepSeek 正在看图并提炼宣言，通常 20–60 秒，结果会自动回填。');
+});
+window.addEventListener('iam-relay-result', (e) => {
+  const d = e.detail || {};
+  if (d.error) { setStatus('全自动中继失败：' + d.error, true); return; }
+  try { applyResult(parseJSON(d.text || '')); }
+  catch (err) { setStatus('中继结果解析失败：' + err.message, true); }
+});
+
+/* direct call with a user-provided key (advanced fallback) */
 $('genBtn').addEventListener('click', async () => {
   if (!imgEl) return;
-  if (!apiKey) { setStatus('请先登录 OpenRouter（或用手动模式写字）', true); return; }
+  if (!apiKey) { setStatus('全自动调用需要先在页面底部粘贴 DeepSeek API Key（或回到免 Key 中继流程）', true); return; }
   const zh = $('zhMode').checked;
-  const vm = $('visionModel').value;
-  const useWriter = $('useWriter').checked && $('writerModel').value;
-  setStatus('视觉模型正在看图…');
+  setStatus('DeepSeek 正在看图并提炼宣言…');
   try {
-    let scene;
-    try {
-      const out = await chat(vm, [
-        { role:'system', content: zh ? VISION_PROMPT_ZH : VISION_PROMPT },
-        { role:'user', content: [
-            { type:'text', text:'分析这张照片。' },
-            { type:'image_url', image_url:{ url: visionDataURL() } }
-        ]}
-      ], 1200);
-      scene = parseJSON(out);
-    } catch (e) {
-      throw new Error('视觉模型失败：' + e.message + ' — 可换一个免费模型再试');
-    }
-    sceneInfo = scene;
-
-    let statement = null, reason = '';
-    if (useWriter) {
-      setStatus('DeepSeek 正在提炼宣言…');
-      try {
-        const out = await chat($('writerModel').value, [
-          { role:'user', content: writerPrompt(scene, zh) }
-        ], 400);
-        const j = parseJSON(out);
-        statement = j.statement; reason = j.reason_zh || '';
-      } catch (e) {
-        setStatus('DeepSeek 失败（' + e.message + '），改用视觉模型初稿', true);
-      }
-    }
-    if (!statement) {
-      // fallback: ask the vision model itself for the statement
-      const out = await chat(vm, [
-        { role:'system', content: writerPrompt(scene, zh) },
-        { role:'user', content:'写宣言。' }
-      ], 400);
-      const j = parseJSON(out);
-      statement = j.statement; reason = j.reason_zh || '';
-    }
-
-    statement = sanitizeStatement(statement, zh);
+    const out = await chat([
+      { role:'system', content: systemPrompt(zh) },
+      { role:'user', content: [
+          { type:'text', text:'分析这张照片，给出宣言与排版。' },
+          { type:'image_url', image_url:{ url: visionDataURL(), detail:'low' } }
+      ]}
+    ], 1200);
+    const j = parseJSON(out);
+    const statement = sanitizeStatement(j.statement, zh);
     if (!statement) throw new Error('宣言为空');
     setStatement(statement);
-    const y = Math.max(0.08, Math.min(0.92, Number(scene.y_frac) || 0.5));
+    const y = Math.max(0.08, Math.min(0.92, Number(j.y_frac) || 0.5));
     $('yPos').value = Math.round(y * 100);
-    if (scene.backing) { $('backing').checked = true; }
-    $('why').textContent = reason ? '为什么是这句：' + reason : '';
+    $('backing').checked = !!j.backing;
+    $('why').textContent = j.reason_zh ? '为什么是这句：' + j.reason_zh : '';
     setStatus('<span class="ok">完成。</span>可拖动滑杆微调位置和大小，字幕也可直接点图上修改。');
     renderBand();
   } catch (e) {
-    setStatus(e.message, true);
+    setStatus('生成失败：' + e.message, true);
   }
 });
 
@@ -451,7 +401,7 @@ function setStatement(s){ $('stmtInput').value = s; renderBand(); }
 
 /* ---------------- typesetting (port of geometry()) ---------------- */
 const measureCtx = document.createElement('canvas').getContext('2d');
-function measure(text, fontPx, weight, zh){
+function measure(text, fontPx, weight){
   measureCtx.font = `${weight} ${fontPx}px "Helvetica Neue","PingFang SC",Arial,sans-serif`;
   const m = measureCtx.measureText(text);
   return { w:m.width, asc:m.actualBoundingBoxAscent || fontPx*.72,
@@ -480,9 +430,9 @@ function renderBand(){
   function geoAt(bandH){
     const padX = bandH * .30, border = Math.max(2, bandH * .035);
     const fL = bandH * .66 * 1.04, fR = bandH * .66;
-    const mr = measure(st.text, fR, 400, st.zh);
+    const mr = measure(st.text, fR, 400);
     const rw = mr.w + TRACK * fR * Math.max(st.text.length - 1, 0);
-    const lw = measure(lt, fL, 800, st.zh).w;
+    const lw = measure(lt, fL, 800).w;
     return { bandH, padX, border, fL, fR, lw, rw,
              total: lw + 2*padX + rw + 2*padX };
   }
@@ -497,7 +447,7 @@ function renderBand(){
   // left block: solid yellow + bold black
   x.fillStyle = yellow;
   x.fillRect(L, top, lx1 - L, g.bandH);
-  const ml = measure(lt, g.fL, 800, st.zh);
+  const ml = measure(lt, g.fL, 800);
   x.fillStyle = '#111111';
   x.font = `800 ${g.fL}px "Helvetica Neue","PingFang SC",Arial,sans-serif`;
   x.textBaseline = 'alphabetic';
@@ -513,7 +463,7 @@ function renderBand(){
   }
   x.fillStyle = '#ffffff';
   x.font = `400 ${g.fR}px "Helvetica Neue","PingFang SC",Arial,sans-serif`;
-  const mr = measure(st.text, g.fR, 400, st.zh);
+  const mr = measure(st.text, g.fR, 400);
   const yText = top + (g.bandH - (mr.asc + mr.desc)) / 2 + mr.asc;
   if (st.zh || !st.text) {
     x.fillText(st.text, lx1 + g.padX, yText);
@@ -521,7 +471,7 @@ function renderBand(){
     let cx = lx1 + g.padX;
     for (const ch of st.text) {
       x.fillText(ch, cx, yText);
-      cx += measure(ch, g.fR, 400, false).w + g.fR * .045;
+      cx += measure(ch, g.fR, 400).w + g.fR * .045;
     }
   }
 }
@@ -568,30 +518,28 @@ function setStatus(html, err){
 function enterApp(withKey){
   $('hero').classList.add('hidden');
   $('app').classList.remove('hidden');
+  $('keyRow').style.display = withKey ? 'flex' : 'none';
   const who = $('who');
   if (withKey) {
-    who.innerHTML = '已通过 OpenRouter 授权（密钥仅存本机） · <button id="logout">退出</button>';
+    who.innerHTML = 'DeepSeek Key 已存本机（全自动可用） · <button id="logout">清除</button>';
     $('logout').addEventListener('click', () => {
       localStorage.removeItem(LS_KEY); location.reload();
     });
   } else {
-    who.innerHTML = '手动模式 · 想要 AI 配文可刷新页面登录 OpenRouter';
-    $('genBtn').disabled = true;
+    who.innerHTML = '免 Key 模式 · AI 配文走 DeepSeek 网页版中继；装有本地中继脚本可一键全自动';
   }
 }
-$('loginBtn').addEventListener('click', startLogin);
-$('manualBtn').addEventListener('click', () => enterApp(false));
-$('manualKeyBtn').addEventListener('click', () => {
-  const k = $('manualKey').value.trim();
-  if (!k) return;
+$('dsKeyBtn').addEventListener('click', () => {
+  const k = $('dsKey').value.trim();
+  if (!k) { setStatus('请先粘贴 Key', true); return; }
   apiKey = k; localStorage.setItem(LS_KEY, k);
   enterApp(true);
 });
+$('dsKey').addEventListener('keydown', e => { if (e.key === 'Enter') $('dsKeyBtn').click(); });
+$('manualBtn').addEventListener('click', () => enterApp(false));
 
-(async function init(){
-  loadModels();
-  const back = await handleCallback();
-  if (back || apiKey) enterApp(true);
+(function init(){
+  if (apiKey) enterApp(true);
 })();
 </script>
 </body>
