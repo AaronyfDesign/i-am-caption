@@ -12,7 +12,7 @@
 ## 安装
 
 1. 浏览器安装 [Tampermonkey](https://www.tampermonkey.net/)（Chrome / Edge / Safari 均可）；
-2. 下载本 Release 的 `i-am-caption-relay.user.js`，在 Tampermonkey 管理面板 → 实用工具 → 「导入」选择该文件；或新建脚本后整体粘贴文件内容保存；
+2. 点击 [这个安装链接](https://raw.githubusercontent.com/AaronyfDesign/i-am-caption/main/relay/i-am-caption-relay.user.js)（raw 直链），浏览器会自动弹出 Tampermonkey 安装页，点「安装」即可；Chrome 用户若脚本不生效，需在 `chrome://extensions` 打开右上角「开发者模式」开关（MV3 限制）；也可以从 [Release relay-v0.2.0](https://github.com/AaronyfDesign/i-am-caption/releases/tag/relay-v0.2.0) 下载后，在 Tampermonkey 管理面板 → 实用工具 → 「导入」，或新建脚本粘贴文件内容；
 3. 保持 [chat.deepseek.com](https://chat.deepseek.com/) 处于登录状态（新开一个标签页即可，无需停在页面上）；
 4. 回到 Web 版上传照片——AI 配文面板会出现绿色的「⚡ 全自动」按钮。
 
