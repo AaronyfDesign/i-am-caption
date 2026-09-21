@@ -14,12 +14,13 @@ Turn a photograph into a first-person statement. Inspired by the classic Nikon "
 
 ## Web App (no install)
 
-Use it without installing the skill: open the [web app](https://aaronyfdesign.github.io/i-am-caption/web/), sign in with OpenRouter, and drop a photo.
+Use it without installing the skill: open the [web app](https://aaronyfdesign.github.io/i-am-caption/web/) and drop a photo.
 
-- **Zero API keys**: sign-in is an OpenRouter OAuth handshake that leaves a temporary, browser-local key — nothing to create, paste or upload;
-- **AI captions**: a free vision model reads the photo and picks placement, DeepSeek distills the statement (optional, needs a small OpenRouter balance);
-- **Manual mode**: skip sign-in entirely and write your own line with the sliders;
-- Pure client-side single page — no server, no account, photos never leave your browser (except a compressed copy sent to the model you chose).
+- **No-key manual relay (default)**: click "Generate via DeepSeek web" — the prompt is copied and chat.deepseek.com opens; drop the photo into the chat, paste the prompt, send, then paste DeepSeek's JSON reply back. Free, powered by the DeepSeek web app itself;
+- **Fully automatic (optional)**: install the [relay userscript](https://github.com/AaronyfDesign/i-am-caption/releases/tag/relay-v0.2.0) and captioning becomes one click — the photo is uploaded and the statement filled in automatically. See [relay/README](relay/README.md). The script drives DeepSeek's undocumented web APIs; account risk is yours to evaluate;
+- **API key (last resort)**: paste your own DeepSeek API key under Advanced; the browser calls the official API directly and the key never leaves local storage;
+- **Manual mode**: skip AI entirely and write your own line with the sliders;
+- Pure client-side single page — no server, no account; photos stay in your browser (AI modes send a compressed copy to the target you chose).
 
 ## How to Use
 

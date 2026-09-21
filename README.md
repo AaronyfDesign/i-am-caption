@@ -14,12 +14,13 @@
 
 ## Web 版（免安装）
 
-不用装 Skill 也能用：打开 [Web 版](https://aaronyfdesign.github.io/i-am-caption/web/)，点「用 OpenRouter 登录」，上传照片即可。
+不用装 Skill 也能用：打开 [Web 版](https://aaronyfdesign.github.io/i-am-caption/web/)，上传照片即可。
 
-- **零 API Key**：登录走 OpenRouter OAuth 授权，返回一个仅存于你浏览器本地的临时密钥，不创建、不粘贴、不上传任何 Key；
-- **AI 配文**：免费视觉模型看图定排版，DeepSeek 提炼宣言（可选，需少量 OpenRouter 余额）；
-- **手动模式**：跳过登录也能用，上传后自己写字、拖滑杆排版；
-- 纯前端单页，无服务器、无账号，照片仅在浏览器里处理。
+- **免 Key 手动中继（默认）**：点「用 DeepSeek 网页版生成」，提示词自动复制并打开 chat.deepseek.com——把照片拖进对话、粘贴提示词发送，再把 DeepSeek 回复的 JSON 贴回本页，排版与导出自动完成。免费，用的就是 DeepSeek 网页版本尊；
+- **全自动（可选）**：安装 [中继油猴脚本](https://github.com/AaronyfDesign/i-am-caption/releases/tag/relay-v0.2.0)后，AI 配文变成一键完成——照片自动上传、宣言自动生成回填，详见 [relay/README](relay/README.md)。脚本调用 DeepSeek 网页版未公开接口，有账号风险，自行评估；
+- **API Key（下下策）**：在高级选项里粘贴自己的 DeepSeek API Key，浏览器直连官方 API，Key 只存本地；
+- **手动模式**：跳过 AI，上传后自己写字、拖滑杆排版；
+- 纯前端单页，无服务器、无账号，照片仅在浏览器里处理（AI 模式下压缩副本发往你自己选择的目标）。
 
 ## How to Use
 
