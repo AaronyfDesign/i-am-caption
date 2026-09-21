@@ -1,16 +1,18 @@
 // ==UserScript==
 // @name         I AM Caption · DeepSeek 中继
 // @namespace    iam-caption-relay
-// @version      0.2.0
-// @description  把 I AM Caption 网页版的配文任务转交给已登录的 chat.deepseek.com：纯 API 直调（页面自身 wasm 解 PoW → 上传图片 ref_file_ids → 直发 completion → SSE 流重组取回 JSON），无任何输入框/剪贴板模拟。仅供个人使用。
+// @version      0.3.0
+// @description  把 I AM Caption 网页版的配文任务自动转交给已登录的 chat.deepseek.com：纯 API 直调（页面自身 wasm 解 PoW → 上传图片 ref_file_ids → 直发 completion → SSE 流重组取回 JSON），无任何输入框/剪贴板模拟。仅供个人使用。
 // @match        https://chat.deepseek.com/*
 // @match        https://aaronyfdesign.github.io/i-am-caption/*
-// @match        http://localhost*/*
+// @match        http://localhost/*
+// @match        http://127.0.0.1/*
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @grant        GM_addValueChangeListener
 // @grant        unsafeWindow
 // @run-at       document-start
+// @noframes
 // ==/UserScript==
 
 /*
@@ -19,64 +21,110 @@
  * - 仅限本人已登录账号、个人低频使用。请勿公开分发本文件或用于批量/商业用途。
  * - 协议变更（wasm hash、接口路径、SSE 格式）会导致脚本失效，属预期内。
  *
- * 架构（参考 dtw request_body_injection.md 的"钩子在请求层面做事"思想，本脚本更进一步：
- * 直接以页面身份发出自己的请求，因此整条 SSE 流都在掌控中）：
+ * v0.3 变更：Chrome MV3 下油猴脚本运行在隔离世界（USER_SCRIPT world），
+ *   页面 JS 与脚本 JS 不共享 window 变量，CustomEvent.detail 跨世界也不可靠。
+ *   因此本版本改用「DOM 属性信箱 + 无 detail 的 ping 事件」作为主通道：
+ *   DOM 属性是字符串，跨世界 100% 可读；旧版 CustomEvent 通道保留作兼容。
  *
- *   页面 tab (github.io)                      DeepSeek tab (chat.deepseek.com)
- *   ─────────────────────                     ─────────────────────────────────
- *   index.html 派发 CustomEvent
- *   'iam-relay-task' {id,prompt,imageDataUrl}
- *        │ (isolated) GM_setValue('iam_task') ────► (isolated) GM 监听 → CustomEvent
- *                                                        │
- *                                                        ▼
- *                                                 MAIN-world 引擎（本文件注入）
- *                                                 1. sha3 wasm 解 PoW（upload+completion 各一次）
- *                                                 2. POST /api/v0/file/upload_file（FormData）
- *                                                 3. 轮询 /api/v0/file/fetch_files → SUCCESS
- *                                                 4. POST /api/v0/chat_session/create
- *                                                 5. POST /api/v0/chat/completion
- *                                                    prompt + ref_file_ids, thinking/search off
- *                                                 6. SSE JSON-patch 状态机重组全文
- *        │ (isolated) GM 监听 ◄──────── GM_setValue('iam_result') ◄──┘
- *        ▼
- *   CustomEvent 'iam-relay-result' → 编辑器回填
+ * 通道（v0.3）：
+ *   页面 app ⇄ 本脚本沙箱：#iam-relay-task-box / #iam-relay-result-box 的 data-msg
+ *   本脚本沙箱 ⇄ MAIN 引擎：同上（chat.deepseek.com 页内）
+ *   本脚本沙箱（web tab）⇄ 本脚本沙箱（DS tab）：GM_setValue / GM_addValueChangeListener
+ *   在线标记：document.documentElement 的 data-iam-relay 属性（页面轮询即可见）
+ *
+ * 排查（F12 控制台，[iam-relay] 前缀）：
+ *   - 无任何日志 → 脚本根本没执行（Chrome 需在 chrome://extensions 打开开发者模式）
+ *   - 有 "sandbox bridge ready" 无 "engine ready"（DS tab）→ 页面 CSP 拦截了注入
+ *
+ * 架构（DS tab 内，MAIN-world 引擎直调 API）：
+ *   1. sha3 wasm 解 PoW（upload + completion 各一次）
+ *   2. POST /api/v0/file/upload_file（FormData）
+ *   3. 轮询 /api/v0/file/fetch_files → SUCCESS
+ *   4. POST /api/v0/chat_session/create
+ *   5. POST /api/v0/chat/completion  prompt + ref_file_ids
+ *   6. SSE JSON-patch 状态机重组全文，提取 JSON 回传
  */
 
 (function () {
   'use strict';
 
-  /* ================= 通道协议（与 v0.1 兼容，web/index.html 无需改动） ================= */
-
   const IS_DS = location.hostname === 'chat.deepseek.com';
+  const VER = 'v0.3';
+
+  /* ============ DOM 信箱：跨世界（页面 JS ⇄ 沙箱 JS）可靠的消息通道 ============ */
+
+  function boxEl(id) {
+    let el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement('div');
+      el.id = id;
+      el.style.display = 'none';
+      (document.body || document.documentElement).appendChild(el);
+    }
+    return el;
+  }
+  function domSend(boxId, obj) {
+    try {
+      boxEl(boxId).setAttribute('data-msg', JSON.stringify(obj));
+      window.dispatchEvent(new CustomEvent('iam-relay-ping')); // 无 detail，事件本身跨世界可达
+    } catch (e) {}
+  }
+  function domRecv(boxId) {
+    try {
+      const el = document.getElementById(boxId);
+      if (!el) return null;
+      const raw = el.getAttribute('data-msg');
+      if (!raw) return null;
+      el.removeAttribute('data-msg');
+      return JSON.parse(raw);
+    } catch (e) { return null; }
+  }
+
+  /* ================= 沙箱侧桥（GM 存储 ⇄ 页面 DOM 信箱） ================= */
 
   function installBridge() {
+    // 在线标记：DOM 属性跨世界可见（window 变量在 MV3 隔离世界里页面看不见）
+    try { document.documentElement.setAttribute('data-iam-relay', VER); } catch (e) {}
+    try { window.__IAM_RELAY__ = true; } catch (e) {}
+    try { if (typeof unsafeWindow !== 'undefined') unsafeWindow.__IAM_RELAY__ = true; } catch (e) {}
+
+    const seen = Object.create(null); // 双通道去重
+    function once(k) { if (seen[k]) return false; seen[k] = 1; return true; }
+
     if (IS_DS) {
-      // 任务进来：GM → window 事件（MAIN 引擎监听）
+      // 任务进来：GM → DOM 信箱 + 兼容旧事件（MAIN 引擎监听）
       GM_addValueChangeListener('iam_task', function (k, ov, nv, remote) {
-        if (nv && nv.id) {
-          window.dispatchEvent(new CustomEvent('iam-relay-task', { detail: nv }));
+        if (nv && nv.id && once('t' + nv.id)) {
+          domSend('iam-relay-task-box', nv);
+          try { window.dispatchEvent(new CustomEvent('iam-relay-task', { detail: nv })); } catch (e) {}
         }
       });
-      // 结果出去：MAIN 引擎 → window 事件 → GM
+      // 结果出去：MAIN 引擎 → DOM 信箱 / 旧事件 → GM
+      window.addEventListener('iam-relay-ping', function () {
+        const m = domRecv('iam-relay-result-box');
+        if (m && m.id && once('r' + m.id)) GM_setValue('iam_result', m);
+      });
       window.addEventListener('iam-relay-result', function (e) {
-        const d = e.detail;
-        if (d && d.id) GM_setValue('iam_result', d);
+        if (e.detail && e.detail.id && once('r' + e.detail.id)) GM_setValue('iam_result', e.detail);
       });
     } else {
-      // 任务出去：页面 app → window 事件 → GM
-      window.addEventListener('iam-relay-task', function (e) {
-        const d = e.detail;
-        if (d && d.id) GM_setValue('iam_task', d);
+      // 任务出去：页面 app → DOM 信箱 / 旧事件 → GM
+      window.addEventListener('iam-relay-ping', function () {
+        const m = domRecv('iam-relay-task-box');
+        if (m && m.id && once('t' + m.id)) GM_setValue('iam_task', m);
       });
-      // 结果进来：GM → window 事件（页面 app 监听）
+      window.addEventListener('iam-relay-task', function (e) {
+        if (e.detail && e.detail.id && once('t' + e.detail.id)) GM_setValue('iam_task', e.detail);
+      });
+      // 结果进来：GM → DOM 信箱 + 兼容旧事件（页面 app 监听）
       GM_addValueChangeListener('iam_result', function (k, ov, nv, remote) {
-        if (nv && nv.id) {
-          window.dispatchEvent(new CustomEvent('iam-relay-result', { detail: nv }));
+        if (nv && nv.id && once('r' + nv.id)) {
+          domSend('iam-relay-result-box', nv);
+          try { window.dispatchEvent(new CustomEvent('iam-relay-result', { detail: nv })); } catch (e) {}
         }
       });
-      // 页面 app 探测脚本在线
-      window.__IAM_RELAY__ = true;
     }
+    console.info('[iam-relay]', VER, 'sandbox bridge ready:', location.href);
   }
 
   /* ================= MAIN-world 引擎（注入页面世界执行） ================= */
@@ -84,14 +132,40 @@
   function iamRelayMainEngine() {
     'use strict';
     if (location.hostname !== 'chat.deepseek.com') {
-      window.__IAM_RELAY__ = true;
+      try { window.__IAM_RELAY__ = true; } catch (e) {}
       return;
     }
 
     const TAG = '[iam-relay]';
     const NL = String.fromCharCode(10);
 
+    /* ---- 引擎自己的 DOM 信箱（与沙箱桥共用元素 id） ---- */
+    function domSend2(boxId, obj) {
+      try {
+        let el = document.getElementById(boxId);
+        if (!el) {
+          el = document.createElement('div');
+          el.id = boxId;
+          el.style.display = 'none';
+          (document.body || document.documentElement).appendChild(el);
+        }
+        el.setAttribute('data-msg', JSON.stringify(obj));
+        window.dispatchEvent(new CustomEvent('iam-relay-ping'));
+      } catch (e) {}
+    }
+    function domRecv2(boxId) {
+      try {
+        const el = document.getElementById(boxId);
+        if (!el) return null;
+        const raw = el.getAttribute('data-msg');
+        if (!raw) return null;
+        el.removeAttribute('data-msg');
+        return JSON.parse(raw);
+      } catch (e) { return null; }
+    }
+
     function postResult(detail) {
+      domSend2('iam-relay-result-box', detail); // 主通道：DOM 属性（跨世界可靠）
       try { window.dispatchEvent(new CustomEvent('iam-relay-result', { detail: detail })); } catch (e) {}
     }
     function fail(taskId, msg) {
@@ -425,9 +499,12 @@
       postResult({ id: task.id, text: JSON.stringify(obj) });
     }
 
-    window.addEventListener('iam-relay-task', function (e) {
-      const task = e.detail;
-      if (!task || !task.id) return;
+    /* ---------- 任务接收（DOM 信箱主通道 + 兼容旧事件，按 id 去重） ---------- */
+
+    const seenTasks = Object.create(null);
+    function handleTask(task) {
+      if (!task || !task.id || seenTasks[task.id]) return;
+      seenTasks[task.id] = 1;
       // 同一时间只跑一个任务：新任务打断旧任务
       if (busy) {
         try { busy.abort.abort(); } catch (err) {}
@@ -443,13 +520,21 @@
           fail(task.id, (err && err.message) || err);
         })
         .finally(function () { if (busy && busy.taskId === task.id) busy = null; });
+    }
+    window.addEventListener('iam-relay-task', function (e) { handleTask(e.detail); });
+    window.addEventListener('iam-relay-ping', function () {
+      const m = domRecv2('iam-relay-task-box');
+      if (m && m.id) handleTask(m);
     });
+
+    // 引擎心跳标记（沙箱侧可探测注入是否成功）
+    try { document.documentElement.setAttribute('data-iam-engine', '1'); } catch (e) {}
 
     // 预热 wasm（登录页以外尽早可用）
     if (localStorage.getItem('userToken')) {
       loadWasm().catch(function (e) { console.warn(TAG, e.message); });
     }
-    console.info(TAG, 'v0.2 ready (pure API relay)');
+    console.info(TAG, 'v0.3 engine ready (pure API relay)');
   }
 
   /* ================= 装配 ================= */

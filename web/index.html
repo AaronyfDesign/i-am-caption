@@ -132,7 +132,7 @@
         <div class="row" id="autoRow" style="display:none; gap:8px;">
           <button class="btn" id="autoBtn" style="background:#9fe6a0;">⚡ 全自动：已检测到本地中继脚本，一键生成</button>
         </div>
-        <p class="note" style="margin-top:6px;">嫌①③两步手工麻烦？<a href="https://cdn.jsdelivr.net/gh/AaronyfDesign/i-am-caption@main/relay/i-am-caption-relay.user.js" target="_blank" rel="noopener">安装中继脚本</a>（需先装 Tampermonkey，点击后浏览器会自动弹出脚本安装页；打不开就用 <a href="https://raw.githubusercontent.com/AaronyfDesign/i-am-caption/main/relay/i-am-caption-relay.user.js" target="_blank" rel="noopener">GitHub 直链</a>或 <a href="https://github.com/AaronyfDesign/i-am-caption/releases/tag/relay-v0.2.0" target="_blank" rel="noopener">Release 下载</a>）即可解锁上方的一键全自动。</p>
+        <p class="note" style="margin-top:6px;">嫌①③两步手工麻烦？<a href="https://cdn.jsdelivr.net/gh/AaronyfDesign/i-am-caption@main/relay/i-am-caption-relay.user.js" target="_blank" rel="noopener">安装中继脚本</a>（需先装 Tampermonkey，点击后浏览器会自动弹出脚本安装页；打不开就用 <a href="https://raw.githubusercontent.com/AaronyfDesign/i-am-caption/main/relay/i-am-caption-relay.user.js" target="_blank" rel="noopener">GitHub 直链</a>或 <a href="https://github.com/AaronyfDesign/i-am-caption/releases/tag/relay-v0.3.0" target="_blank" rel="noopener">Release 下载</a>）即可解锁上方的一键全自动。装好后 ⚡ 没亮？按 F12 看控制台有无 [iam-relay] 日志，对照 <a href="https://github.com/AaronyfDesign/i-am-caption/blob/main/relay/README.md#装了但--不亮30-秒自检" target="_blank" rel="noopener">30 秒自检</a>。</p>
         <div class="row" id="keyRow" style="display:none; gap:8px;">
           <button class="btn" id="genBtn" style="padding:8px 16px; font-size:14px;">⚡ 已检测到 Key：全自动调用</button>
         </div>
@@ -353,20 +353,46 @@ $('relayApply').addEventListener('click', relayApply);
 /* ---- 全自动通道：本机装有中继油猴脚本时可用（可选） ---- */
 function showAutoRow(){ $('autoRow').style.display = 'flex'; }
 window.addEventListener('iam-relay-ready', showAutoRow);
-setInterval(() => { if (window.__IAM_RELAY__) showAutoRow(); }, 1000);
-$('autoBtn').addEventListener('click', () => {
-  if (!imgEl) { setStatus('请先上传照片', true); return; }
-  window.dispatchEvent(new CustomEvent('iam-relay-task', {
-    detail: { id: 't' + Date.now(), prompt: relayPrompt(), imageDataUrl: visionDataURL() }
-  }));
-  window.open('https://chat.deepseek.com/', '_blank', 'noopener');
-  setStatus('任务已派发：DeepSeek 正在看图并提炼宣言，通常 20–60 秒，结果会自动回填。');
-});
-window.addEventListener('iam-relay-result', (e) => {
-  const d = e.detail || {};
+setInterval(() => { if (window.__IAM_RELAY__ || document.documentElement.getAttribute('data-iam-relay')) showAutoRow(); }, 1000);
+
+/* v0.3 双通道派发：DOM 信箱（跨世界可靠）+ 兼容旧版 CustomEvent */
+function iamSendTask(task) {
+  try {
+    let el = document.getElementById('iam-relay-task-box');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'iam-relay-task-box';
+      el.style.display = 'none';
+      document.body.appendChild(el);
+    }
+    el.setAttribute('data-msg', JSON.stringify(task));
+    window.dispatchEvent(new CustomEvent('iam-relay-ping'));
+  } catch (e) {}
+  try { window.dispatchEvent(new CustomEvent('iam-relay-task', { detail: task })); } catch (e) {}
+}
+const iamSeenRes = {};
+function iamOnResult(d) {
+  if (!d || !d.id || iamSeenRes[d.id]) return;
+  iamSeenRes[d.id] = 1;
   if (d.error) { setStatus('全自动中继失败：' + d.error, true); return; }
   try { applyResult(parseJSON(d.text || '')); }
   catch (err) { setStatus('中继结果解析失败：' + err.message, true); }
+}
+$('autoBtn').addEventListener('click', () => {
+  if (!imgEl) { setStatus('请先上传照片', true); return; }
+  iamSendTask({ id: 't' + Date.now(), prompt: relayPrompt(), imageDataUrl: visionDataURL() });
+  window.open('https://chat.deepseek.com/', '_blank', 'noopener');
+  setStatus('任务已派发：DeepSeek 正在看图并提炼宣言，通常 20–60 秒，结果会自动回填。');
+});
+window.addEventListener('iam-relay-result', (e) => iamOnResult(e.detail));
+window.addEventListener('iam-relay-ping', () => {
+  const el = document.getElementById('iam-relay-result-box');
+  if (!el) return;
+  const raw = el.getAttribute('data-msg');
+  if (!raw) return;
+  el.removeAttribute('data-msg');
+  let d; try { d = JSON.parse(raw); } catch (e) { return; }
+  iamOnResult(d);
 });
 
 /* direct call with a user-provided key (advanced fallback) */
