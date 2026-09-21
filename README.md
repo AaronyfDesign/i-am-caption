@@ -17,7 +17,7 @@
 不用装 Skill 也能用：打开 [Web 版](https://aaronyfdesign.github.io/i-am-caption/web/)，上传照片即可。
 
 - **免 Key 手动中继（默认）**：点「用 DeepSeek 网页版生成」，提示词自动复制并打开 chat.deepseek.com——把照片拖进对话、粘贴提示词发送，再把 DeepSeek 回复的 JSON 贴回本页，排版与导出自动完成。免费，用的就是 DeepSeek 网页版本尊；
-- **全自动（可选）**：装了 [Tampermonkey](https://www.tampermonkey.net/) 的话，点[这个 raw 直链](https://raw.githubusercontent.com/AaronyfDesign/i-am-caption/main/relay/i-am-caption-relay.user.js)即可一键安装中继脚本，AI 配文变成一键完成——照片自动上传、宣言自动生成回填，详见 [relay/README](relay/README.md)。脚本调用 DeepSeek 网页版未公开接口，有账号风险，自行评估；
+- **全自动（可选）**：装了 [Tampermonkey](https://www.tampermonkey.net/) 的话，点[这个 jsDelivr 链接](https://cdn.jsdelivr.net/gh/AaronyfDesign/i-am-caption@main/relay/i-am-caption-relay.user.js)（国内可达；raw 直链[在此](https://raw.githubusercontent.com/AaronyfDesign/i-am-caption/main/relay/i-am-caption-relay.user.js)）即可一键安装中继脚本，AI 配文变成一键完成——照片自动上传、宣言自动生成回填，详见 [relay/README](relay/README.md)（含 Chrome 开发者模式必读项）。脚本调用 DeepSeek 网页版未公开接口，有账号风险，自行评估；
 - **API Key（下下策）**：在高级选项里粘贴自己的 DeepSeek API Key，浏览器直连官方 API，Key 只存本地；
 - **手动模式**：跳过 AI，上传后自己写字、拖滑杆排版；
 - 纯前端单页，无服务器、无账号，照片仅在浏览器里处理（AI 模式下压缩副本发往你自己选择的目标）。
