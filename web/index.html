@@ -139,10 +139,7 @@
           </label>
           <button class="btn" id="relayApply" style="align-self:flex-end;">解析并应用</button>
         </div>
-        <div class="row" id="autoRow" style="display:none; gap:8px;">
-          <button class="btn" id="autoBtn" style="background:#9fe6a0;">⚡ 全自动：已检测到本地中继脚本，一键生成</button>
-        </div>
-        <p class="note" style="margin-top:6px;">嫌①③两步手工麻烦？<a href="https://cdn.jsdelivr.net/gh/AaronyfDesign/i-am-caption@main/relay/i-am-caption-relay.user.js" target="_blank" rel="noopener">安装中继脚本</a>（需先装 Tampermonkey，点击后浏览器会自动弹出脚本安装页；打不开就用 <a href="https://raw.githubusercontent.com/AaronyfDesign/i-am-caption/main/relay/i-am-caption-relay.user.js" target="_blank" rel="noopener">GitHub 直链</a>或 <a href="https://github.com/AaronyfDesign/i-am-caption/releases/tag/relay-v0.3.0" target="_blank" rel="noopener">Release 下载</a>）即可解锁上方的一键全自动。装好后 ⚡ 没亮？按 F12 看控制台有无 [iam-relay] 日志，对照 <a href="https://github.com/AaronyfDesign/i-am-caption/blob/main/relay/README.md#装了但--不亮30-秒自检" target="_blank" rel="noopener">30 秒自检</a>。</p>
+        <p class="note" style="margin-top:6px;">① 点击按钮后提示词已复制剪贴板、DeepSeek 已在新标签打开；<b>② 在 DeepSeek 对话框里先把这张照片上传/拖进去（必须，AI 要看图才能写宣言），再粘贴提示词发送</b>；③ 把回复粘贴到上面输入框，点「解析并应用」。</p>
         <div class="row" id="keyRow" style="display:none; gap:8px;">
           <button class="btn" id="genBtn" style="padding:8px 16px; font-size:14px;">⚡ 已检测到 Key：全自动调用</button>
         </div>
@@ -352,7 +349,7 @@ function visionDataURL(){
 /* prompt for the chat.deepseek.com relay: one self-contained user message */
 function relayPrompt(){
   return systemPrompt($('zhMode').checked)
-    + '\n\n请只回复上面的 JSON，不要任何多余文字或代码块标记。照片我已随本消息一并发给你。';
+    + '\n\n请只回复上面的 JSON，不要任何多余文字或代码块标记。请结合对话框里一并发送的照片进行分析。';
 }
 
 /* copy prompt to clipboard and open chat.deepseek.com */
@@ -367,7 +364,7 @@ async function relayOpen(){
   }
   window.open('https://chat.deepseek.com/', '_blank', 'noopener');
   setStatus('① 提示词已复制到剪贴板，DeepSeek 已在新标签打开。'
-    + '② 把这张照片拖进对话框，粘贴提示词并发送。'
+    + '② 在 DeepSeek 对话框里先上传/拖入这张照片（必须上传，AI 需要看图），再粘贴提示词并发送。'
     + '③ 复制 DeepSeek 的回复，贴到下面的输入框点「解析并应用」。');
 }
 
@@ -396,51 +393,6 @@ function relayApply(){
 $('relayBtn').addEventListener('click', () => enterApp(false));
 $('relayBtn2').addEventListener('click', relayOpen);
 $('relayApply').addEventListener('click', relayApply);
-
-/* ---- 全自动通道：本机装有中继油猴脚本时可用（可选） ---- */
-function showAutoRow(){ $('autoRow').style.display = 'flex'; }
-window.addEventListener('iam-relay-ready', showAutoRow);
-setInterval(() => { if (window.__IAM_RELAY__ || document.documentElement.getAttribute('data-iam-relay')) showAutoRow(); }, 1000);
-
-/* v0.3 双通道派发：DOM 信箱（跨世界可靠）+ 兼容旧版 CustomEvent */
-function iamSendTask(task) {
-  try {
-    let el = document.getElementById('iam-relay-task-box');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'iam-relay-task-box';
-      el.style.display = 'none';
-      document.body.appendChild(el);
-    }
-    el.setAttribute('data-msg', JSON.stringify(task));
-    window.dispatchEvent(new CustomEvent('iam-relay-ping'));
-  } catch (e) {}
-  try { window.dispatchEvent(new CustomEvent('iam-relay-task', { detail: task })); } catch (e) {}
-}
-const iamSeenRes = {};
-function iamOnResult(d) {
-  if (!d || !d.id || iamSeenRes[d.id]) return;
-  iamSeenRes[d.id] = 1;
-  if (d.error) { setStatus('全自动中继失败：' + d.error, true); return; }
-  try { applyResult(parseJSON(d.text || '')); }
-  catch (err) { setStatus('中继结果解析失败：' + err.message, true); }
-}
-$('autoBtn').addEventListener('click', () => {
-  if (!imgEl) { setStatus('请先上传照片', true); return; }
-  iamSendTask({ id: 't' + Date.now(), prompt: relayPrompt(), imageDataUrl: visionDataURL() });
-  window.open('https://chat.deepseek.com/', '_blank', 'noopener');
-  setStatus('任务已派发：DeepSeek 正在看图并提炼宣言，通常 20–60 秒，结果会自动回填。');
-});
-window.addEventListener('iam-relay-result', (e) => iamOnResult(e.detail));
-window.addEventListener('iam-relay-ping', () => {
-  const el = document.getElementById('iam-relay-result-box');
-  if (!el) return;
-  const raw = el.getAttribute('data-msg');
-  if (!raw) return;
-  el.removeAttribute('data-msg');
-  let d; try { d = JSON.parse(raw); } catch (e) { return; }
-  iamOnResult(d);
-});
 
 /* direct call with a user-provided key (advanced fallback) */
 $('genBtn').addEventListener('click', async () => {
@@ -614,7 +566,7 @@ function enterApp(withKey){
       location.reload();
     });
   } else {
-    $('who').innerHTML = '免 Key 模式 · AI 配文走 DeepSeek 网页版中继；装有本地中继脚本可一键全自动';
+    $('who').innerHTML = '免 Key 模式 · AI 配文走 DeepSeek 网页版中继（需手动上传照片到 DeepSeek）';
   }
 }
 // Worker 未部署时隐藏代理选项
