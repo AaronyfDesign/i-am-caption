@@ -114,6 +114,7 @@
     <header class="bar">
       <b>I AM CAPTION</b>
       <span class="who" id="who"></span>
+      <button class="btn ghost" id="reuploadBtn" style="margin-left:auto; padding:6px 14px; font-size:13px; display:none;">↺ 再传一张</button>
     </header>
 
     <div id="drop">
@@ -313,6 +314,20 @@ $('drop').addEventListener('drop', e => {
 });
 $('file').addEventListener('change', e => { if (e.target.files[0]) loadPhoto(e.target.files[0]); });
 
+/* 回到照片上传页：清掉当前照片与中继残留，重新出现拖拽区 */
+$('reuploadBtn').addEventListener('click', () => {
+  imgEl = null; baseCanvas = null;
+  $('workspace').classList.add('hidden');
+  $('drop').classList.remove('hidden');
+  $('reuploadBtn').style.display = 'none';
+  $('file').value = '';
+  $('relayPaste').value = '';
+  $('why').textContent = '';
+  $('stmtInput').value = '';
+  setStatus('已返回上传页，选择新照片开始。');
+  window.scrollTo(0, 0);
+});
+
 function loadPhoto(file){
   if (!/^image\//.test(file.type)) { setStatus('请选择图片文件', true); return; }
   const url = URL.createObjectURL(file);
@@ -325,6 +340,7 @@ function loadPhoto(file){
     baseCanvas.getContext('2d').drawImage(img, 0, 0);
     $('workspace').classList.remove('hidden');
     $('drop').classList.add('hidden');
+    $('reuploadBtn').style.display = 'inline-block';
     $('stage').width = W; $('stage').height = H;
     if ($('stmtInput').value.trim() === '') setStatement('THE STORY BEYOND THE FRAME');
     setStatus('照片已就绪（' + W + '×' + H + '）。点「生成宣言」让 AI 看图，或直接在编辑器里写字。');
