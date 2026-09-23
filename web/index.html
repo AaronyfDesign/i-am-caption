@@ -93,7 +93,8 @@
       <summary>高级：粘贴 API Key 全自动调用（DeepSeek 官方 / OpenRouter 免费池）</summary>
       <div class="keyrow" style="margin-top:10px;">
         <select id="providerSel" style="background:#0c0c0c; color:var(--txt); border:1px solid var(--line); border-radius:3px; padding:8px; font-size:13px;">
-          <option value="or">OpenRouter（免费模型）</option>
+          <option value="proxy">作者免费代理（无需 Key）</option>
+          <option value="or">OpenRouter（自带免费 Key）</option>
           <option value="ds">DeepSeek 官方（按量付费）</option>
         </select>
         <input type="password" id="dsKey" placeholder="粘贴 API Key（sk-or-… / sk-…）" autocomplete="off">
@@ -102,6 +103,7 @@
       <div class="keyrow" style="margin-top:8px;">
         <input type="text" id="orModel" placeholder="模型 ID（默认 ling-3.0-flash-vl:free）" style="flex:1; background:#0c0c0c; color:var(--txt); border:1px solid var(--line); border-radius:3px; padding:8px; font-size:13px;">
       </div>
+      <p class="note" id="proxyNote" style="display:none;">作者免费代理：直接点「开始使用」，无需任何 Key——请求由本页转发到作者的 Cloudflare Worker，Worker 用它自己的受限 OpenRouter Key（仅免费视觉模型、限额 $1）调上游，你的浏览器拿不到这个 Key。每 IP 限 10 次/5 分钟。⚠️ 照片压缩副本会经代理转发（不落盘、不留存）；介意请改用自带 Key 或 DeepSeek 网页中继。额度是作者免费提供的小水管，勿批量滥用。</p>
       <p class="note" id="providerNote">OpenRouter：注册 <a href="https://openrouter.ai/" target="_blank" rel="noopener">openrouter.ai</a> 免费生成 Key，填带 <code>:free</code> 的视觉模型即可零成本调用（未充值限 50 次/天，充过 $10 放宽到 1000 次/天）。免费模型多为各厂补贴、随时上下架：404 时去 <a href="https://openrouter.ai/models?modality=text%2Bimage-&max_price=0" target="_blank" rel="noopener">模型页</a> 筛「Free + 图片输入」换一个 ID 填上方。⚠️ 免费模型的数据条款通常允许厂商用你的输入训练，介意请用 DeepSeek 网页中继。Key 只存本机，直连官方接口，不经过任何服务器。</p>
       <p class="note" id="dsNote" style="display:none;">Key 只存你的浏览器本地，请求由浏览器直连 DeepSeek 官方 API（已实测支持跨域），不经过任何服务器；每张照片成本不到 0.1 分钱。</p>
     </details>
@@ -202,8 +204,9 @@ const DS_URL = 'https://api.deepseek.com/chat/completions';
 const DS_MODEL = 'deepseek-flash';
 const OR_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const OR_MODEL_DEFAULT = 'inclusionai/ling-3.0-flash-vl:free';
+const PROXY_URL = ''; // ← 部署 worker/ 后把 https://i-am-caption-proxy.<你的子域>.workers.dev 填进来，「作者免费代理」即生效并成为默认
 let apiKey = localStorage.getItem(LS_KEY) || '';
-let provider = localStorage.getItem(LS_PROVIDER) || 'or';   // 'or' | 'ds'
+let provider = localStorage.getItem(LS_PROVIDER) || (PROXY_URL ? 'proxy' : 'or');   // 'proxy' | 'or' | 'ds'
 let orModel = localStorage.getItem(LS_MODEL) || '';          // empty = default
 let baseCanvas = null;   // full-resolution photo, band drawn on top each render
 let imgEl = null;        // the decoded <img> for the current photo
@@ -216,15 +219,20 @@ function activeModel(){
 
 /* ---------------- chat (OpenAI-compatible; DeepSeek or OpenRouter) ---------------- */
 async function chat(messages, maxTokens){
-  const headers = { 'Authorization':'Bearer ' + apiKey, 'Content-Type':'application/json' };
+  const headers = { 'Content-Type':'application/json' };
   let url;
-  if (provider === 'or') {
-    url = OR_URL;
-    // OpenRouter attribution headers (required for :free models, else 402)
-    headers['HTTP-Referer'] = location.origin + location.pathname;
-    headers['X-Title'] = 'I AM Caption';
+  if (provider === 'proxy') {
+    url = PROXY_URL;
   } else {
-    url = DS_URL;
+    headers['Authorization'] = 'Bearer ' + apiKey;
+    if (provider === 'or') {
+      url = OR_URL;
+      // OpenRouter attribution headers (required for :free models, else 402)
+      headers['HTTP-Referer'] = location.origin + location.pathname;
+      headers['X-Title'] = 'I AM Caption';
+    } else {
+      url = DS_URL;
+    }
   }
   const r = await fetch(url, {
     method:'POST',
@@ -234,12 +242,12 @@ async function chat(messages, maxTokens){
   if (!r.ok) {
     let detail = '';
     try { detail = (await r.json())?.error?.message || ''; } catch (_) {}
-    if (provider === 'or' && (r.status === 404 || /not found|no endpoints/i.test(detail)))
+    if (provider !== 'ds' && (r.status === 404 || /not found|no endpoints/i.test(detail)))
       throw new Error('HTTP 404：模型 ' + activeModel() + ' 不存在或已下架，请换一个 :free 视觉模型 ID');
     if (provider === 'or' && r.status === 402)
       throw new Error('HTTP 402：免费额度不足或请求头被拒（Key 无效/未登录）');
-    if (provider === 'or' && r.status === 429)
-      throw new Error('HTTP 429：免费档限速（未充值 50 次/天，充值 $10 后 1000 次/天）');
+    if (provider !== 'ds' && r.status === 429)
+      throw new Error('HTTP 429：' + (provider === 'proxy' ? '作者代理限速（每 5 分钟 10 次），稍后再试' : '免费档限速（未充值 50 次/天，充值 $10 后 1000 次/天）'));
     throw new Error('HTTP ' + r.status + (detail ? '：' + detail : ''));
   }
   const j = await r.json();
@@ -433,9 +441,11 @@ window.addEventListener('iam-relay-ping', () => {
 /* direct call with a user-provided key (advanced fallback) */
 $('genBtn').addEventListener('click', async () => {
   if (!imgEl) return;
-  if (!apiKey) { setStatus('全自动调用需要先在页面底部选择服务商并粘贴 API Key（或回到免 Key 中继流程）', true); return; }
+  if (!apiKey && provider !== 'proxy') { setStatus('全自动调用需要先在页面底部选择服务商并粘贴 API Key（或回到免 Key 中继流程）', true); return; }
   const zh = $('zhMode').checked;
-  setStatus(provider === 'or'
+  setStatus(provider === 'proxy'
+    ? '作者免费代理（' + activeModel() + '）正在看图并提炼宣言…'
+    : provider === 'or'
     ? 'OpenRouter 免费模型（' + activeModel() + '）正在看图并提炼宣言…'
     : 'DeepSeek 正在看图并提炼宣言…');
   try {
@@ -584,33 +594,57 @@ function enterApp(withKey){
   $('app').classList.remove('hidden');
   $('keyRow').style.display = withKey ? 'flex' : 'none';
   if (withKey) {
-    $('genBtn').textContent = provider === 'or'
-      ? '⚡ 已检测到 Key：OpenRouter ' + activeModel() + ' 全自动调用'
-      : '⚡ 已检测到 Key：DeepSeek 全自动调用';
-    $('who').innerHTML = (provider === 'or' ? 'OpenRouter Key 已存本机（' + activeModel() + '）' : 'DeepSeek Key 已存本机') + ' · <button id="logout">清除</button>';
+    if (provider === 'proxy') {
+      $('genBtn').textContent = '⚡ 作者免费代理 · ' + activeModel() + ' 全自动调用';
+      $('who').innerHTML = '作者免费代理模式（' + activeModel() + '，无需 Key） · <button id="logout">切换模式</button>';
+    } else {
+      $('genBtn').textContent = provider === 'or'
+        ? '⚡ 已检测到 Key：OpenRouter ' + activeModel() + ' 全自动调用'
+        : '⚡ 已检测到 Key：DeepSeek 全自动调用';
+      $('who').innerHTML = (provider === 'or' ? 'OpenRouter Key 已存本机（' + activeModel() + '）' : 'DeepSeek Key 已存本机') + ' · <button id="logout">清除</button>';
+    }
     $('logout').addEventListener('click', () => {
-      localStorage.removeItem(LS_KEY); location.reload();
+      localStorage.removeItem(LS_KEY);
+      localStorage.removeItem(LS_PROVIDER);
+      localStorage.removeItem(LS_MODEL);
+      location.reload();
     });
   } else {
     $('who').innerHTML = '免 Key 模式 · AI 配文走 DeepSeek 网页版中继；装有本地中继脚本可一键全自动';
   }
 }
+// Worker 未部署时隐藏代理选项
+(function(){
+  if (!PROXY_URL) {
+    const opt = $('providerSel').querySelector('option[value="proxy"]');
+    if (opt) opt.remove();
+    const pn = $('proxyNote'); if (pn) pn.remove();
+    if (provider === 'proxy') provider = 'or';
+  }
+})();
 $('providerSel').value = provider;
 $('orModel').value = orModel;
 function syncProviderNote(){
-  const isOR = $('providerSel').value === 'or';
-  $('providerNote').style.display = isOR ? '' : 'none';
-  $('dsNote').style.display = isOR ? 'none' : '';
-  $('orModel').style.display = isOR ? '' : 'none';
+  const p = $('providerSel').value;
+  const pn = $('proxyNote'); if (pn) pn.style.display = p === 'proxy' ? '' : 'none';
+  $('providerNote').style.display = p === 'or' ? '' : 'none';
+  $('dsNote').style.display = p === 'ds' ? '' : 'none';
+  $('orModel').style.display = p === 'ds' ? 'none' : '';
+  $('dsKey').style.display = p === 'proxy' ? 'none' : '';
 }
 $('providerSel').addEventListener('change', syncProviderNote);
 syncProviderNote();
 $('dsKeyBtn').addEventListener('click', () => {
+  provider = $('providerSel').value; localStorage.setItem(LS_PROVIDER, provider);
+  orModel = $('orModel').value.trim(); localStorage.setItem(LS_MODEL, orModel);
+  if (provider === 'proxy') {
+    apiKey = ''; localStorage.removeItem(LS_KEY);
+    enterApp(true);
+    return;
+  }
   const k = $('dsKey').value.trim();
   if (!k) { setStatus('请先粘贴 Key', true); return; }
   apiKey = k; localStorage.setItem(LS_KEY, k);
-  provider = $('providerSel').value; localStorage.setItem(LS_PROVIDER, provider);
-  orModel = $('orModel').value.trim(); localStorage.setItem(LS_MODEL, orModel);
   enterApp(true);
 });
 $('dsKey').addEventListener('keydown', e => { if (e.key === 'Enter') $('dsKeyBtn').click(); });
@@ -618,7 +652,7 @@ $('orModel').addEventListener('keydown', e => { if (e.key === 'Enter') $('dsKeyB
 $('manualBtn').addEventListener('click', () => enterApp(false));
 
 (function init(){
-  if (apiKey) enterApp(true);
+  if (apiKey || (PROXY_URL && provider === 'proxy')) enterApp(true);
 })();
 </script>
 </body>
