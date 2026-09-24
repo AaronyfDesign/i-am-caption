@@ -31,6 +31,8 @@
              padding:8px 18px; font-size:14px; font-weight:600; }
   .btn.seg.on { background:var(--yellow); color:#111; border:1px solid var(--yellow); }
   .btn.seg:hover { color:var(--txt); }
+/* genBtn 状态机：PENDING 时变灰禁点 */
+.btn.busy { background:var(--line); color:var(--dim); cursor:not-allowed; filter:none; }
   .btn.seg.on:hover { color:#111; }
   .btn.ghost { background:transparent; color:var(--dim); border:1px solid var(--line);
                font-weight:400; padding:11px 20px; margin-left:12px; }
@@ -439,8 +441,22 @@ $('relayBtn').addEventListener('click', () => enterApp(false));
 $('relayBtn2').addEventListener('click', relayOpen);
 $('relayApply').addEventListener('click', relayApply);
 
+/* genBtn 状态机：IDLE 可点 → PENDING（变灰、防重复提交）→ 请求返回后回 IDLE */
+const GEN_IDLE_TEXT = '开始自动分析图片';
+const GEN_PENDING_TEXT = '分析中…';
+let genState = 'idle';
+function setGenBtn(state){
+  genState = state;
+  const b = $('genBtn');
+  const pending = state === 'pending';
+  b.disabled = pending;
+  b.classList.toggle('busy', pending);
+  b.textContent = pending ? GEN_PENDING_TEXT : GEN_IDLE_TEXT;
+}
+
 /* direct call with a user-provided key (advanced fallback) */
 $('genBtn').addEventListener('click', async () => {
+  if (genState !== 'idle') return; /* PENDING 期间忽略重复点击 */
   if (!imgEl) return;
   if (!apiKey && provider !== 'proxy') { setStatus('全自动调用需要先在页面底部选择服务商并粘贴 API Key（或回到免 Key 中继流程）', true); return; }
   const zh = $('zhMode').checked;
@@ -449,6 +465,7 @@ $('genBtn').addEventListener('click', async () => {
     : provider === 'or'
     ? 'OpenRouter 免费模型（' + activeModel() + '）正在看图并提炼宣言…'
     : 'DeepSeek 正在看图并提炼宣言…');
+  setGenBtn('pending'); /* 请求发起即进入 PENDING，按钮变灰 */
   try {
     const out = await chat([
       { role:'system', content: systemPrompt(zh) },
@@ -475,6 +492,8 @@ $('genBtn').addEventListener('click', async () => {
     } else {
       setStatus('生成失败：' + e.message, true);
     }
+  } finally {
+    setGenBtn('idle'); /* 无论成功失败，收到返回后恢复正常状态 */
   }
 });
 
@@ -640,12 +659,12 @@ function enterApp(withKey){
   $('app').classList.remove('hidden');
   if (withKey) {
     if (provider === 'proxy') {
-      $('genBtn').textContent = '开始自动分析图片';
+      setGenBtn('idle');
       $('genBtn').title = '作者免费代理 · 智谱 GLM-4.6V-Flash（官方免费视觉模型），无需 Key，照片压缩副本经代理转发（不落盘）';
-      $('autoNote').innerHTML = '调用作者的免费代理，转发到智谱 BigModel 官方免费视觉模型 <b>GLM-4.6V-Flash</b>，<b>无需任何 Key</b>；每 IP 限 30 次/5 分钟，限流时可切换「网页中继」。照片仅发送一份压缩副本，不落盘、不留存。';
+      $('autoNote').innerHTML = '自动代理模式调用的免费模型API，对单位时间的并发请求有次数限制，如果遇到达到上限的报错可以等待一段时间后再尝试。';
       $('who').innerHTML = '作者免费代理模式（智谱 GLM-4.6V-Flash，无需 Key） · <button id="logout">切换模式</button>';
     } else {
-      $('genBtn').textContent = '开始自动分析图片';
+      setGenBtn('idle');
       $('genBtn').title = (provider === 'or' ? 'OpenRouter ' + activeModel() : 'DeepSeek 官方 API') + '，Key 只存本机、直连官方接口';
       $('autoNote').innerHTML = provider === 'or'
         ? '调用 OpenRouter 免费视觉模型（当前 <b>' + activeModel() + '</b>），Key 只存你的浏览器本地、直连官方接口不经过任何服务器；免费档限速，404 时去 OpenRouter 模型页换一个 :free 视觉模型。'
@@ -653,9 +672,9 @@ function enterApp(withKey){
       $('who').innerHTML = (provider === 'or' ? 'OpenRouter Key 已存本机（' + activeModel() + '）' : 'DeepSeek Key 已存本机') + ' · <button id="logout">清除</button>';
     }
   } else if (provider === 'proxy') {
-    $('genBtn').textContent = '开始自动分析图片';
+    setGenBtn('idle');
     $('genBtn').title = '作者免费代理 · 智谱 GLM-4.6V-Flash（官方免费视觉模型），无需 Key，照片压缩副本经代理转发（不落盘）';
-    $('autoNote').innerHTML = '调用作者的免费代理，转发到智谱 BigModel 官方免费视觉模型 <b>GLM-4.6V-Flash</b>，<b>无需任何 Key</b>；每 IP 限 30 次/5 分钟，限流时可切换「网页中继」。照片仅发送一份压缩副本，不落盘、不留存。';
+    $('autoNote').innerHTML = '自动代理模式调用的免费模型API，对单位时间的并发请求有次数限制，如果遇到达到上限的报错可以等待一段时间后再尝试。';
     $('who').innerHTML = '作者免费代理模式（智谱 GLM-4.6V-Flash，无需 Key） · <button id="logout">切换模式</button>';
   } else {
     $('who').innerHTML = '免 Key 模式 · 全自动不可用时可在上方切换「网页中继」';
