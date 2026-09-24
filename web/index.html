@@ -110,7 +110,7 @@
         <button class="btn" id="dsKeyBtn">开始使用</button>
       </div>
       <div class="keyrow" style="margin-top:8px;">
-        <input type="text" id="orModel" placeholder="模型 ID（默认 ling-3.0-flash-vl:free）" style="flex:1; background:#0c0c0c; color:var(--txt); border:1px solid var(--line); border-radius:3px; padding:8px; font-size:13px;">
+        <input type="text" id="orModel" placeholder="模型 ID（默认 nex-n2.5-mini:free）" style="flex:1; background:#0c0c0c; color:var(--txt); border:1px solid var(--line); border-radius:3px; padding:8px; font-size:13px;">
       </div>
       <p class="note" id="proxyNote" style="display:none;">作者免费代理：直接点「开始使用」，无需任何 Key——请求由本页转发到作者的 Deno Deploy 代理，代理用它自己的受限 OpenRouter Key（仅免费视觉模型）调上游，你的浏览器拿不到这个 Key。每 IP 限 10 次/5 分钟。⚠️ 照片压缩副本会经代理转发（不落盘、不留存）；介意请改用自带 Key 或 DeepSeek 网页中继。额度是作者免费提供的小水管，勿批量滥用。</p>
       <p class="note" id="providerNote">OpenRouter：注册 <a href="https://openrouter.ai/" target="_blank" rel="noopener">openrouter.ai</a> 免费生成 Key，填带 <code>:free</code> 的视觉模型即可零成本调用（未充值限 50 次/天，充过 $10 放宽到 1000 次/天）。免费模型多为各厂补贴、随时上下架：404 时去 <a href="https://openrouter.ai/models?modality=text%2Bimage-&max_price=0" target="_blank" rel="noopener">模型页</a> 筛「Free + 图片输入」换一个 ID 填上方。⚠️ 免费模型的数据条款通常允许厂商用你的输入训练，介意请用 DeepSeek 网页中继。Key 只存本机，直连官方接口，不经过任何服务器。</p>
@@ -222,7 +222,9 @@ const LS_MODEL = 'iam_or_model';
 const DS_URL = 'https://api.deepseek.com/chat/completions';
 const DS_MODEL = 'deepseek-flash';
 const OR_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const OR_MODEL_DEFAULT = 'inclusionai/ling-3.0-flash-vl:free';
+const OR_MODEL_DEFAULT = 'nex-agi/nex-n2.5-mini:free';
+/* 免费池流动性大：主模型 404 时自动依次降级尝试 */
+const MODEL_FALLBACKS = ['nex-agi/nex-n2.5-pro:free', 'openrouter/free'];
 const PROXY_URL = 'https://neat-whale-5101.aaronyfdesign.deno.net'; // 作者免费代理（Deno Deploy，国内可达）；OpenRouter Key 仅存在服务端环境变量
 let apiKey = localStorage.getItem(LS_KEY) || '';
 let provider = localStorage.getItem(LS_PROVIDER) || (PROXY_URL ? 'proxy' : 'or');   // 'proxy' | 'or' | 'ds'
@@ -253,18 +255,26 @@ async function chat(messages, maxTokens){
       url = DS_URL;
     }
   }
-  // 免费推理模型偶发把 token 预算耗在 reasoning 上、content 为空——重试最多 3 次
-  for (let attempt = 0; attempt < 3; attempt++) {
+  // 免费推理模型偶发把 token 预算耗在 reasoning 上、content 为空——重试；
+  // 免费池流动性大，主模型 404 时自动降级到备用免费模型
+  let currentModel = activeModel();
+  let fbIdx = 0;
+  for (let attempt = 0; attempt < 5; attempt++) {
   const r = await fetch(url, {
     method:'POST',
     headers,
-    body: JSON.stringify({ model: activeModel(), messages, max_tokens: maxTokens })
+    body: JSON.stringify({ model: currentModel, messages, max_tokens: maxTokens })
   });
   if (!r.ok) {
     let detail = '';
     try { detail = (await r.json())?.error?.message || ''; } catch (_) {}
-    if (provider !== 'ds' && (r.status === 404 || /not found|no endpoints/i.test(detail)))
-      throw new Error('HTTP 404：模型 ' + activeModel() + ' 不存在或已下架，请换一个 :free 视觉模型 ID');
+    if (provider !== 'ds' && (r.status === 404 || /not found|no endpoints/i.test(detail))) {
+      if (fbIdx < MODEL_FALLBACKS.length) {
+        currentModel = MODEL_FALLBACKS[fbIdx++];
+        continue;
+      }
+      throw new Error('HTTP 404：模型 ' + currentModel + ' 及备用免费模型均不可用，请稍后再试或在高级设置里换一个 :free 视觉模型 ID');
+    }
     if (provider === 'or' && r.status === 402)
       throw new Error('HTTP 402：免费额度不足或请求头被拒（Key 无效/未登录）');
     if (provider !== 'ds' && r.status === 429)
