@@ -161,8 +161,9 @@
           </div>
         </div>
         <div class="row" id="keyRow" style="display:none; gap:8px;">
-          <button class="btn" id="genBtn" style="padding:8px 16px; font-size:14px;">⚡ 全自动调用</button>
+          <button class="btn" id="genBtn" style="padding:8px 16px; font-size:14px;">开始自动分析图片</button>
         </div>
+        <p class="note" id="autoNote" style="display:none; margin-top:8px;"></p>
         <div id="status"></div>
       </div>
 
@@ -629,17 +630,22 @@ function enterApp(withKey){
   $('app').classList.remove('hidden');
   if (withKey) {
     if (provider === 'proxy') {
-      $('genBtn').textContent = '⚡ 全自动调用';
+      $('genBtn').textContent = '开始自动分析图片';
       $('genBtn').title = '作者免费代理 · ' + activeModel() + '，无需 Key，照片压缩副本经代理转发（不落盘）';
+      $('autoNote').innerHTML = '调用作者的免费代理，转发到 OpenRouter 免费视觉模型（当前 <b>' + activeModel() + '</b>），<b>无需任何 Key</b>；每 IP 限 10 次/5 分钟，限流时可切换「网页中继」。照片仅发送一份压缩副本，不落盘、不留存。免费模型由厂商补贴、稳定性一般，失败请重试或切换「网页中继」。';
       $('who').innerHTML = '作者免费代理模式（' + activeModel() + '，无需 Key） · <button id="logout">切换模式</button>';
     } else {
-      $('genBtn').textContent = '⚡ 全自动调用';
+      $('genBtn').textContent = '开始自动分析图片';
       $('genBtn').title = (provider === 'or' ? 'OpenRouter ' + activeModel() : 'DeepSeek 官方 API') + '，Key 只存本机、直连官方接口';
+      $('autoNote').innerHTML = provider === 'or'
+        ? '调用 OpenRouter 免费视觉模型（当前 <b>' + activeModel() + '</b>），Key 只存你的浏览器本地、直连官方接口不经过任何服务器；免费档限速，404 时去 OpenRouter 模型页换一个 :free 视觉模型。'
+        : '调用 DeepSeek 官方 API（按量付费，每张照片不到 0.1 分钱），Key 只存你的浏览器本地、直连官方接口。';
       $('who').innerHTML = (provider === 'or' ? 'OpenRouter Key 已存本机（' + activeModel() + '）' : 'DeepSeek Key 已存本机') + ' · <button id="logout">清除</button>';
     }
   } else if (provider === 'proxy') {
-    $('genBtn').textContent = '⚡ 全自动调用';
+    $('genBtn').textContent = '开始自动分析图片';
     $('genBtn').title = '作者免费代理 · ' + activeModel() + '，无需 Key，照片压缩副本经代理转发（不落盘）';
+    $('autoNote').innerHTML = '调用作者的免费代理，转发到 OpenRouter 免费视觉模型（当前 <b>' + activeModel() + '</b>），<b>无需任何 Key</b>；每 IP 限 10 次/5 分钟，限流时可切换「网页中继」。照片仅发送一份压缩副本，不落盘、不留存。免费模型由厂商补贴、稳定性一般，失败请重试或切换「网页中继」。';
     $('who').innerHTML = '作者免费代理模式（' + activeModel() + '，无需 Key） · <button id="logout">切换模式</button>';
   } else {
     $('who').innerHTML = '免 Key 模式 · 全自动不可用时可在上方切换「网页中继」';
@@ -661,6 +667,7 @@ function setAIMode(m){
   $('modeAuto').classList.toggle('on', m === 'auto');
   $('relayBox').style.display = m === 'relay' ? '' : 'none';
   $('keyRow').style.display = m === 'auto' ? 'flex' : 'none';
+  $('autoNote').style.display = m === 'auto' ? '' : 'none';
 }
 $('modeRelay').addEventListener('click', () => setAIMode('relay'));
 $('modeAuto').addEventListener('click', () => setAIMode('auto'));
