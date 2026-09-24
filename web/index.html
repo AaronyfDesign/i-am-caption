@@ -457,7 +457,13 @@ $('genBtn').addEventListener('click', async () => {
     setStatus('<span class="ok">完成。</span>可拖动滑杆微调位置和大小，字幕也可直接点图上修改。');
     renderBand();
   } catch (e) {
-    setStatus('生成失败：' + e.message, true);
+    if (/429|限速/.test(e.message) && PROXY_URL) {
+      setStatus('生成失败：' + e.message + '。可先 <a href="#" id="swRelay" style="color:var(--yellow);">切换到网页中继</a>（免费免 Key，用 DeepSeek 网页版手动生成）。', true);
+      var sw = document.getElementById('swRelay');
+      if (sw) sw.addEventListener('click', function(ev){ ev.preventDefault(); setAIMode('relay'); setStatus('已切换到网页中继，按上方三步操作即可。'); });
+    } else {
+      setStatus('生成失败：' + e.message, true);
+    }
   }
 });
 
@@ -631,17 +637,20 @@ function enterApp(withKey){
       $('genBtn').title = (provider === 'or' ? 'OpenRouter ' + activeModel() : 'DeepSeek 官方 API') + '，Key 只存本机、直连官方接口';
       $('who').innerHTML = (provider === 'or' ? 'OpenRouter Key 已存本机（' + activeModel() + '）' : 'DeepSeek Key 已存本机') + ' · <button id="logout">清除</button>';
     }
-    $('logout').addEventListener('click', () => {
-      localStorage.removeItem(LS_KEY);
-      localStorage.removeItem(LS_PROVIDER);
-      localStorage.removeItem(LS_MODEL);
-      location.reload();
-    });
-    setAIMode('auto');
+  } else if (provider === 'proxy') {
+    $('genBtn').textContent = '⚡ 全自动调用';
+    $('genBtn').title = '作者免费代理 · ' + activeModel() + '，无需 Key，照片压缩副本经代理转发（不落盘）';
+    $('who').innerHTML = '作者免费代理模式（' + activeModel() + '，无需 Key） · <button id="logout">切换模式</button>';
   } else {
-    $('who').innerHTML = '免 Key 模式 · AI 配文走 DeepSeek 网页版中继（需手动上传照片到 DeepSeek）';
-    setAIMode('relay');
+    $('who').innerHTML = '免 Key 模式 · 全自动不可用时可在上方切换「网页中继」';
   }
+  $('logout').addEventListener('click', () => {
+    localStorage.removeItem(LS_KEY);
+    localStorage.removeItem(LS_PROVIDER);
+    localStorage.removeItem(LS_MODEL);
+    location.reload();
+  });
+  setAIMode('auto');
 }
 
 /* 中继 / 全自动并列切换 */
