@@ -259,7 +259,8 @@ async function chat(messages, maxTokens){
   }
   // 免费推理模型偶发把 token 预算耗在 reasoning 上、content 为空——重试；
   // 免费池流动性大，主模型 404 时自动降级到备用免费模型
-  let currentModel = activeModel();
+  // proxy 模式：固定发送 glm-5.3-flash，由代理侧自动降级（5.3-flash → 4.6v 免费链）
+  let currentModel = provider === 'proxy' ? 'glm-5.3-flash' : activeModel();
   let fbIdx = 0;
   for (let attempt = 0; attempt < 5; attempt++) {
   const r = await fetch(url, {
